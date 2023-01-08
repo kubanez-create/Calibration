@@ -40,11 +40,60 @@ async def start(event):
     
     # set text and send message
     markup = event.client.build_reply_markup([
-        [Button.text('First button', resize=True, single_use=True)],
+        [
+            Button.inline('Make prediction', b'mkpred'),
+            Button.inline('Help', b'help')
+        ],
+        [
+            Button.inline('Update prediction', b'updpred'),
+            Button.inline('Check calibration', b'check')
+        ]
     ])
-    text = "Hello i am a bot that can do CRUD operations inside a MySQL database"
+    
+    text = "Hello let's make some pretty predictions, bwah"
     await client.send_message(SENDER, text, buttons=markup)
 
+### insert will be here COMMAND
+@client.on(events.CallbackQuery(data=b'mkpred'))
+async def start(event):
+    # Get sender
+    sender = await event.get_sender()
+    SENDER = sender.id
+    
+    # Start a conversation
+    async with client.conversation(await event.get_chat(), exclusive=True) as conv:
+        text = "Enter your prediction in right format"
+        await conv.send_message(text)
+        response = await conv.get_response()
+        list_of_words = response.text.split("; ")
+        user_id = SENDER
+        date = datetime.now().strftime("%d/%m/%Y") # Use the datetime library to the get the date (and format it as DAY/MONTH/YEAR)
+        task_description = list_of_words[0]
+        task_category = list_of_words[1]
+        unit_of_measure = list_of_words[2]
+        prediction_50_percent_sure = list_of_words[3]
+        prediction_90_percent_sure = list_of_words[4]
+        actual = None
+
+        # Create the tuple "params" with all the parameters inserted by the user
+        params = (user_id, date, task_description, task_category,
+                  unit_of_measure,prediction_50_percent_sure,
+                  prediction_90_percent_sure, actual)
+        sql_command = """INSERT INTO raw_predictions VALUES
+                         (NULL, %s, %s, %s, %s, %s, %s, %s, %s);""" # the initial NULL is for the AUTOINCREMENT id inside the table
+        crsr.execute(sql_command, params) # Execute the query
+        conn.commit() # commit the changes
+
+        # If at least 1 row is affected by the query we send specific messages
+        if crsr.rowcount < 1:
+            text = "Something went wrong, please try again"
+            await client.send_message(SENDER, text, parse_mode='html')
+        else:
+            text = "Order correctly inserted"
+            await client.send_message(SENDER, text, parse_mode='html')
+
+        await conv.cancel_all()
+        return
 
 ### Insert command
 @client.on(events.NewMessage(pattern="(?i)/insert"))
@@ -58,17 +107,21 @@ async def insert(event):
 
         # Get the text of the user AFTER the /insert command and convert it to a list (we are splitting by the SPACE " " simbol)
         list_of_words = event.message.text.split("; ")
+        user_id = SENDER
         date = datetime.now().strftime("%d/%m/%Y") # Use the datetime library to the get the date (and format it as DAY/MONTH/YEAR)
         task_description = list_of_words[1]
-        prediction_50_percent_sure = list_of_words[2]
-        prediction_90_percent_sure = list_of_words[3]
+        task_category = list_of_words[2]
+        unit_of_measure = list_of_words[3]
+        prediction_50_percent_sure = list_of_words[4]
+        prediction_90_percent_sure = list_of_words[5]
         actual = None
 
         # Create the tuple "params" with all the parameters inserted by the user
-        params = (date, task_description, prediction_50_percent_sure,
+        params = (user_id, date, task_description, task_category,
+                  unit_of_measure,prediction_50_percent_sure,
                   prediction_90_percent_sure, actual)
         sql_command = """INSERT INTO raw_predictions VALUES
-                         (NULL, %s, %s, %s, %s, %s);""" # the initial NULL is for the AUTOINCREMENT id inside the table
+                         (NULL, %s, %s, %s, %s, %s, %s);""" # the initial NULL is for the AUTOINCREMENT id inside the table
         crsr.execute(sql_command, params) # Execute the query
         conn.commit() # commit the changes
 
@@ -221,9 +274,12 @@ if __name__ == "__main__":
 
         # Command that creates the "oders" table 
         sql_command = """CREATE TABLE IF NOT EXISTS raw_predictions ( 
-            id INTEGER PRIMARY KEY AUTO_INCREMENT, 
+            id INTEGER PRIMARY KEY AUTO_INCREMENT,
+            user_id INT(10), 
             date VARCHAR(100),
             task_description VARCHAR(200),
+            task_category VARCHAR(50),
+            unit_of_measure VARCHAR(30), 
             prediction_50_percent_sure INT(10),
             prediction_90_percent_sure INT(10), 
             actual_outcome INT(10));"""

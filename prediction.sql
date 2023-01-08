@@ -1,0 +1,1 @@
+SELECT * from predictions.raw_predictions;
