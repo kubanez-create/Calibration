@@ -53,7 +53,7 @@ async def start(event):
     text = "Hello let's make some pretty predictions, bwah"
     await client.send_message(SENDER, text, buttons=markup)
 
-### insert will be here COMMAND
+### insert COMMAND
 @client.on(events.CallbackQuery(data=b'mkpred'))
 async def start(event):
     # Get sender
@@ -94,50 +94,6 @@ async def start(event):
 
         await conv.cancel_all()
         return
-
-### Insert command
-@client.on(events.NewMessage(pattern="(?i)/insert"))
-async def insert(event):
-    try:
-        # Get the sender of the message
-        sender = await event.get_sender()
-        SENDER = sender.id
-
-        # /insert bottle 10
-
-        # Get the text of the user AFTER the /insert command and convert it to a list (we are splitting by the SPACE " " simbol)
-        list_of_words = event.message.text.split("; ")
-        user_id = SENDER
-        date = datetime.now().strftime("%d/%m/%Y") # Use the datetime library to the get the date (and format it as DAY/MONTH/YEAR)
-        task_description = list_of_words[1]
-        task_category = list_of_words[2]
-        unit_of_measure = list_of_words[3]
-        prediction_50_percent_sure = list_of_words[4]
-        prediction_90_percent_sure = list_of_words[5]
-        actual = None
-
-        # Create the tuple "params" with all the parameters inserted by the user
-        params = (user_id, date, task_description, task_category,
-                  unit_of_measure,prediction_50_percent_sure,
-                  prediction_90_percent_sure, actual)
-        sql_command = """INSERT INTO raw_predictions VALUES
-                         (NULL, %s, %s, %s, %s, %s, %s);""" # the initial NULL is for the AUTOINCREMENT id inside the table
-        crsr.execute(sql_command, params) # Execute the query
-        conn.commit() # commit the changes
-
-        # If at least 1 row is affected by the query we send specific messages
-        if crsr.rowcount < 1:
-            text = "Something went wrong, please try again"
-            await client.send_message(SENDER, text, parse_mode='html')
-        else:
-            text = "Order correctly inserted"
-            await client.send_message(SENDER, text, parse_mode='html')
-
-    except Exception as e: 
-        print(e)
-        await client.send_message(SENDER, "Something Wrong happened... Check your code!", parse_mode='html')
-        return
-
 
 
 # Function that creates a message containing a list of all the oders
