@@ -41,91 +41,113 @@ async def start(event):
     # set text and send message
     markup = event.client.build_reply_markup([
         [
-            Button.inline('Make prediction', b'mkpred'),
-            Button.inline('Help', b'help')
+            Button.text('Make prediction'),
+            Button.text('Show predictions')
         ],
         [
-            Button.inline('Update prediction', b'updpred'),
-            Button.inline('Check calibration', b'check')
+            Button.text('Update prediction'),
+            Button.text('Check calibration')
+        ],
+        [
+            Button.text('Help')
         ]
     ])
     
     text = "Hello let's make some pretty predictions, bwah"
     await client.send_message(SENDER, text, buttons=markup)
 
-### insert COMMAND
-@client.on(events.CallbackQuery(data=b'mkpred'))
-async def start(event):
-    # Get sender
-    sender = await event.get_sender()
-    SENDER = sender.id
-    
-    # Start a conversation
-    async with client.conversation(await event.get_chat(), exclusive=True) as conv:
-        text = "Enter your prediction in right format"
-        await conv.send_message(text)
-        response = await conv.get_response()
-        list_of_words = response.text.split("; ")
-        user_id = SENDER
-        date = datetime.now().strftime("%d/%m/%Y") # Use the datetime library to the get the date (and format it as DAY/MONTH/YEAR)
-        task_description = list_of_words[0]
-        task_category = list_of_words[1]
-        unit_of_measure = list_of_words[2]
-        prediction_50_percent_sure = list_of_words[3]
-        prediction_90_percent_sure = list_of_words[4]
-        actual = None
 
-        # Create the tuple "params" with all the parameters inserted by the user
-        params = (user_id, date, task_description, task_category,
-                  unit_of_measure,prediction_50_percent_sure,
-                  prediction_90_percent_sure, actual)
-        sql_command = """INSERT INTO raw_predictions VALUES
-                         (NULL, %s, %s, %s, %s, %s, %s, %s, %s);""" # the initial NULL is for the AUTOINCREMENT id inside the table
-        crsr.execute(sql_command, params) # Execute the query
-        conn.commit() # commit the changes
+### alt insert COMMAND
+@client.on(events.NewMessage(pattern="Make"))
+async def select(event):
+    try:
+        # Get the sender of the message
+        sender = await event.get_sender()
+        SENDER = sender.id
+        # Start a conversation
+        async with client.conversation(await event.get_chat(), exclusive=True) as conv:
+            text = "Enter your prediction in right format"
+            await conv.send_message(text)
+            response = await conv.get_response()
+            list_of_words = response.text.split("; ")
+            user_id = SENDER
+            date = datetime.now().strftime("%d/%m/%Y") # Use the datetime library to the get the date (and format it as DAY/MONTH/YEAR)
+            task_description = list_of_words[0]
+            task_category = list_of_words[1]
+            unit_of_measure = list_of_words[2]
+            prediction_50_percent_sure = list_of_words[3]
+            prediction_90_percent_sure = list_of_words[4]
+            actual = None
 
-        # If at least 1 row is affected by the query we send specific messages
-        if crsr.rowcount < 1:
-            text = "Something went wrong, please try again"
-            await client.send_message(SENDER, text, parse_mode='html')
-        else:
-            text = "Order correctly inserted"
-            await client.send_message(SENDER, text, parse_mode='html')
+            # Create the tuple "params" with all the parameters inserted by the user
+            params = (user_id, date, task_description, task_category,
+                    unit_of_measure,prediction_50_percent_sure,
+                    prediction_90_percent_sure, actual)
+            sql_command = """INSERT INTO raw_predictions VALUES
+                            (NULL, %s, %s, %s, %s, %s, %s, %s, %s);""" # the initial NULL is for the AUTOINCREMENT id inside the table
+            crsr.execute(sql_command, params) # Execute the query
+            conn.commit() # commit the changes
 
-        await conv.cancel_all()
+            # If at least 1 row is affected by the query we send specific messages
+            if crsr.rowcount < 1:
+                text = "Something went wrong, please try again"
+                await client.send_message(SENDER, text, parse_mode='html')
+            else:
+                text = "Order correctly inserted"
+                await client.send_message(SENDER, text, parse_mode='html')
+
+            await conv.cancel_all()
+            return
+
+    except Exception as e: 
+        print(e)
+        await client.send_message(SENDER, "Something Wrong happened... Check your code!", parse_mode='html')
         return
-
 
 # Function that creates a message containing a list of all the oders
 def create_message_select_query(ans):
     text = ""
     for i in ans:
         id = i[0]
-        product = i[1]
-        quantity = i[2]
-        creation_date = i[3]
-        text += "<b>"+ str(id) +"</b> | " + "<b>"+ str(product) +"</b> | " + "<b>"+ str(quantity)+"</b> | " + "<b>"+ str(creation_date)+"</b>\n"
-    message = "<b>Received 📖 </b> Information about orders:\n\n"+text
+        user_id = i[1]
+        date = i[2]
+        task_description = i[3]
+        task_category = i[4]
+        unit_of_measure = i[5]
+        prediction_50_percent_sure = i[6]
+        prediction_90_percent_sure = i[7]
+        actual_outcome = i[8]
+
+        text += (f"<b>{str(id)}</b> | <b>{str(user_id)}</b> | "
+                 f"<b>{date}</b> | <b>{task_description}</b> | "
+                 f"<b>{task_category}</b> | <b>{unit_of_measure}</b> | "
+                 f"<b>{str(prediction_50_percent_sure)}</b> | "
+                 f"<b>{str(prediction_90_percent_sure)}</b> | "
+                 f"<b>{str(actual_outcome)}</b>\n")
+    message = "<b>You have made predictions:</b>\n\n"+text
     return message
 
 ### SELECT COMMAND
-@client.on(events.NewMessage(pattern="(?i)/select"))
+@client.on(events.NewMessage(pattern="Show"))
 async def select(event):
     try:
         # Get the sender of the message
         sender = await event.get_sender()
         SENDER = sender.id
         # Execute the query and get all (*) the oders
-        crsr.execute("SELECT * FROM orders")
+        query = f"SELECT * FROM predictions.raw_predictions WHERE user_id={SENDER}"
+        crsr.execute(query)
         res = crsr.fetchall() # fetch all the results
-        # If there is at least 1 row selected, print a message with the list of all the oders
+        # If there is at least 1 row selected, print a message with the list
+        # of all the oders
         # The message is created using the function defined above
         if(res):
             text = create_message_select_query(res) 
             await client.send_message(SENDER, text, parse_mode='html')
         # Otherwhise, print a default text
         else:
-            text = "No orders found inside the database."
+            text = ("You have made no predictions so far. Give it a try!"
+                    "It is for free.")
             await client.send_message(SENDER, text, parse_mode='html')
 
     except Exception as e: 
