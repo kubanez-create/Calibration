@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 from telethon import Button, TelegramClient, events
 
 from helpers import create_message_categories, create_message_select_query
+from alternative_helper import one_message
 from converter import converter
 from validators import (
     validate_checking,
@@ -41,6 +42,7 @@ DATABASE: str = str(os.getenv("DATABASE"))
 SESSION_NAME: str = "sessions/ruBot"
 CHUNK_SIZE: int = 10
 COUNTER: int = None
+TEXT: dict = {}
 
 # Start the Client (telethon)
 client = TelegramClient(
@@ -53,6 +55,16 @@ class State(Enum):
     WAIT_UPDATE = auto()
     WAIT_ENTER = auto()
     WAIT_DELETE = auto()
+    WAIT_ADD_PREDICTION = auto()
+    WAIT_ADD_CATEGORY = auto()
+    WAIT_ADD_UNIT = auto()
+    WAIT_ADD_LOW_50 = auto()
+    WAIT_ADD_HI_50 = auto()
+    WAIT_ADD_LOW_90 = auto()
+    WAIT_ADD_HI_90 = auto()
+    WAIT_ADD_FINAL = auto()
+    WAIT_ADD_SAVE = auto()
+    WAIT_ADD_REDO = auto()
 
 
 # The state in which different users are, {user_id: state}
@@ -533,120 +545,233 @@ async def CUEDhandler(event):
                 del conversation_state[who]
 
 
-@client.on(events.NewMessage(pattern="Make"))
+@client.on(events.NewMessage(pattern="Добавить"))
 async def add_prediction(event):
     """Add new prediction.
 
     Args:
         event (EventCommon): NewMessage event
     """
+    sender = await event.get_sender()
+    SENDER = sender.id
+    state = conversation_state.get(SENDER)
+    mes = event.message.raw_text
+    if state is None:
+        conversation_state[SENDER] = State.WAIT_ADD_PREDICTION
+        await client.send_message(
+            SENDER,
+            ("Отправьте текст предсказания - что должно произойти, по"
+             " Вашему мнению.\nДалее следуйте подсказкам"),
+            buttons=[
+                Button.inline(
+                    "Предсказание",
+                    data="Добавить текст предсказания"
+                )
+            ]
+        )
+    elif state == State.WAIT_ADD_PREDICTION:
+        TEXT['prediction'] = mes
+        conversation_state[SENDER] = State.WAIT_ADD_CATEGORY
+        await client.send_message(
+            SENDER,
+            ("Отправьте категорию предсказания для того, чтобы у Вас"
+             " была возможность уточнить свою калибровку не только по всем"
+             " сохраненным предсказаниям, но и по отдельной категории.\n"
+             "Это может быть полезно, т.к. мы можем быть одновременно"
+             " великолепно калиброваны во всех, например, рабочих вопросах, но"
+             " быть ужасно калиброваны в вопросах касающихся"
+             " взаимоотношений с людьми.\nДля того, чтобы иметь возможность"
+             " совершенствоваться, нужно понимать, в какой сфере мы не"
+             " совершенны. Отправьте одно слово, характеризующее категорию."
+             ),
+            buttons=[
+                Button.inline("Категория", data="Добавить текст категории")
+            ]
+        )
+    elif state == State.WAIT_ADD_CATEGORY:
+        TEXT['category'] = mes
+        conversation_state[SENDER] = State.WAIT_ADD_UNIT
+        await client.send_message(
+            SENDER,
+            ("В будущем может так случиться, что Вы захотите узнать"
+             " в каких единицах Вы вносили данное предсказание. Чтобы"
+             " такая возможность у Вас была - отправьте одно слово,"
+             " обозначающее единицу измерения. Например: час, день,"
+             " ребёнки."
+             ),
+            buttons=[
+                Button.inline(
+                    "Единицы измерения",
+                    data="Добавить единицу измерения"
+                )
+            ]
+        )
+    elif state == State.WAIT_ADD_UNIT:
+        TEXT['unit'] = mes
+        conversation_state[SENDER] = State.WAIT_ADD_LOW_50
+        await client.send_message(
+            SENDER,
+            ("Отправьте цифру, соответствующую нижней границе, которую"
+             " может принять предсказанная величина с уверенностью 50%."
+             "Одна цифра и ничего более."
+             ),
+            buttons=[
+                Button.inline(
+                    "Нижняя граница при 50% уверенности",
+                    data="Добавить ниж границу 50"
+                )
+            ]
+        )
+    elif state == State.WAIT_ADD_LOW_50:
+        TEXT['low_50'] = mes
+        conversation_state[SENDER] = State.WAIT_ADD_HI_50
+        await client.send_message(
+            SENDER,
+            ("Отправьте цифру, соответствующую верхней границе, которую"
+             " может принять предсказанная величина с уверенностью 50%."
+             "Одна цифра и ничего более."
+             ),
+            buttons=[
+                Button.inline(
+                    "Верхняя граница при 50% уверенности",
+                    data="Добавить вер границу 50"
+                )
+            ]
+        )
+    elif state == State.WAIT_ADD_HI_50:
+        TEXT['hi_50'] = mes
+        conversation_state[SENDER] = State.WAIT_ADD_LOW_90
+        await client.send_message(
+            SENDER,
+            ("Отправьте цифру, соответствующую нижней границе, которую"
+             " может принять предсказанная величина с уверенностью 90%."
+             "Одна цифра и ничего более."
+             ),
+            buttons=[
+                Button.inline(
+                    "Нижняя граница при 90% уверенности",
+                    data="Добавить ниж границу 90"
+                )
+            ]
+        )
+    elif state == State.WAIT_ADD_LOW_90:
+        TEXT['low_90'] = mes
+        conversation_state[SENDER] = State.WAIT_ADD_HI_90
+        await client.send_message(
+            SENDER,
+            ("Отправьте цифру, соответствующую верхней границе, которую"
+             " может принять предсказанная величина с уверенностью 90%."
+             "Одна цифра и ничего более."
+             ),
+            buttons=[
+                Button.inline(
+                    "Верхняя граница при 90% уверенности",
+                    data="Добавить вер границу 90"
+                )
+            ]
+        )
+    elif state == State.WAIT_ADD_HI_90:
+        await client.send_message(
+            SENDER,
+            ("Проверьте, пожалуйста, получившееся предсказание."
+             " Если все верно - нажмите <Сохранить>, если нет - "
+             " нажмите на кнопку <Внести повторно>"
+             ),
+            buttons=[
+                Button.inline(
+                    "Сохранить",
+                    data="Добавить сохранить"
+                ),
+                Button.inline(
+                    "Внести повторно",
+                    data="Добавить повторно"
+                )
+            ]
+        )
+
+
+@client.on(events.CallbackQuery(data=re.compile(r"Добавить сохранить")))
+async def show(event):
     try:
+        global TEXT
         sender = await event.get_sender()
         SENDER = sender.id
-        # Start a conversation
-        async with client.conversation(
-            await event.get_chat(), exclusive=True
-        ) as conv:
-            text = (
-                "Enter your prediction in a form:\n"
-                "- **description** - what you predict specifically "
-                "(not longer then 200 characters so try to be concise);\n"
-                "- **category** of your prediction - one word;\n"
-                "- **unit of measure** whether it is minutes, days,"
-                " persons or chickens - one word;\n"
-                "- **lower bound on your prediction with a 50 percent**"
-                " **condidence**;\n"
-                "- **upper bound on your prediction with a 50 percent**"
-                " **condidence**;\n"
-                "- **lower bound on your prediction with a 90 percent**"
-                " **condidence**;\n"
-                "- **upper bound on your prediction with a 90 percent**"
-                " **condidence**;\n"
-                "For example type in:\n"
-                " How long does it going to take?; work; hours; 2; 8;"
-                " 1; 16\n"
-                "Please use '; ' to separate field values and '.' to"
-                " separate decimal part in numbers."
-            )
-            await conv.send_message(text, parse_mode="md")
-            response = await conv.get_response(timeout=600)
-            if not validate_creating(response.text):
-                await conv.send_message(
-                    (
-                        "Sorry but your input isn't valid."
-                        " Please check that what your are trying to add"
-                        " consists of text description and/or punctiation"
-                        " marks ('.', ',', '?', '!'), a single word for a"
-                        " category of your prediction, another word for a"
-                        " nessesary unit of measure, 4 numbers which stand for"
-                        " your upper and lower predicted bounds and all"
-                        " of those are divided by semicolon and whitespace."
-                        " Also chech that a decimal part of numbers separated"
-                        " by a dot (.) not a colon (,)."
-                    )
-                )
-                logger.info("Prediction isn't valid")
-            else:
-                list_of_words = response.text.split("; ")
-                user_id = SENDER
-                # Use the datetime library to get the date
-                # (and format it as DAY/MONTH/YEAR)
-                date = datetime.now().strftime("%d/%m/%Y")
-                task_description = list_of_words[0]
-                task_category = list_of_words[1]
-                unit_of_measure = list_of_words[2]
-                pred_low_50_conf = list_of_words[3]
-                pred_high_50_conf = list_of_words[4]
-                pred_low_90_conf = list_of_words[5]
-                pred_high_90_conf = list_of_words[6]
-                actual_outcome = None
+        user_id = SENDER
+        date = datetime.now().strftime("%d/%m/%Y")
+        task_description = TEXT['prediction']
+        task_category = TEXT['category']
+        unit_of_measure = TEXT['unit']
+        pred_low_50_conf = TEXT['low_50']
+        pred_high_50_conf = TEXT['hi_50']
+        pred_low_90_conf = TEXT['low_90']
+        pred_high_90_conf = TEXT['hi_90']
+        actual_outcome = None
 
-                # Create the tuple "params" with all the parameters inserted
-                # by the user
-                params = (
-                    user_id,
-                    date,
-                    task_description,
-                    task_category,
-                    unit_of_measure,
-                    pred_low_50_conf,
-                    pred_high_50_conf,
-                    pred_low_90_conf,
-                    pred_high_90_conf,
-                    actual_outcome,
-                )
-                # the initial NULL is for the AUTOINCREMENT id inside the table
-                sql_command = """
-                    INSERT INTO predictions.raw_predictions
-                    VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
-                crsr.execute(sql_command, params)  # Execute the query
-                conn.commit()  # commit the changes
-
-                # If at least 1 row is affected by the query we send specific
-                # messages
-                if crsr.rowcount < 1:
-                    text = "Something went wrong, please try again"
-                    await client.send_message(SENDER, text, parse_mode="html")
-                    logger.info("Creation of a prediction was aborted"
-                                f" with the text: {text}")
-                else:
-                    text = "Prediction correctly inserted"
-                    await client.send_message(SENDER, text, parse_mode="html")
-                    logger.debug("Someone just added a prediction!")
-                global COUNTER
-                COUNTER += 1
-        await conv.cancel_all()
-        return
+        # Create the tuple "params" with all the parameters inserted
+        # by the user
+        params = (
+            user_id,
+            date,
+            task_description,
+            task_category,
+            unit_of_measure,
+            pred_low_50_conf,
+            pred_high_50_conf,
+            pred_low_90_conf,
+            pred_high_90_conf,
+            actual_outcome,
+        )
+        # the initial NULL is for the AUTOINCREMENT id inside the table
+        sql_command = """
+            INSERT INTO predictions.raw_predictions
+            VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
+        crsr.execute(sql_command, params)  # Execute the query
+        conn.commit()  # commit the changes
+        await client.send_message(
+            SENDER,
+            "Предсказание успешно сохранено"
+        )
+        global COUNTER
+        COUNTER += 1
+        del conversation_state[SENDER]
+        del TEXT
 
     except Exception as e:
-        logger.error(
+        logging.error(
             "Something went wrong when inserting a new prediction "
             f"with an error: {e}"
         )
-        return
 
 
-@client.on(events.NewMessage(pattern="Show"))
+@client.on(events.CallbackQuery(data=re.compile(r"Добавить повторно")))
+async def show_again(event):
+    """Add new prediction again.
+
+    Args:
+        event (EventCommon): NewMessage event
+    """
+    sender = await event.get_sender()
+    SENDER = sender.id
+    state = conversation_state.get(SENDER)
+    if state is None or state == State.WAIT_ADD_HI_90:
+        conversation_state[SENDER] = State.WAIT_ADD_PREDICTION
+        await client.send_message(
+            SENDER,
+            ("Отправьте текст предсказания - что должно произойти, по"
+             " Вашему мнению.\nДалее следуйте подсказкам"),
+            buttons=[
+                Button.inline(
+                    "Предсказание",
+                    data="Добавить текст предсказания"
+                )
+            ]
+        )
+        global TEXT
+        del TEXT
+
+
+# LIST METHOD
+@client.on(events.NewMessage(pattern="Показать"))
 async def display(event):
     """Show predictions to a user.
 
@@ -683,9 +808,6 @@ async def display(event):
                         SENDER,
                         f'{tmpdirname}/out.jpg',
                         buttons=button)
-                # send_message(
-                # SENDER, text, parse_mode="html", buttons=button
-                # )
         # Otherwhise, print a default text
         else:
             text = (
@@ -728,8 +850,8 @@ async def show(event):
             backward = f"page_{page - 1}"
             button = event.client.build_reply_markup(
                 [
-                    Button.inline("Previous", data=backward),
-                    Button.inline("Next", data=forward),
+                    Button.inline("Предыдущий", data=backward),
+                    Button.inline("Следующий", data=forward),
                 ]
             )
             with tempfile.TemporaryDirectory() as tmpdirname:
@@ -739,8 +861,6 @@ async def show(event):
                     SENDER,
                     f'{tmpdirname}/out.jpg',
                     buttons=button)
-            # await client.send_message(SENDER, text, parse_mode="html",
-            #                           buttons=button)
         elif page >= 1 and (COUNTER - page * CHUNK_SIZE) <= CHUNK_SIZE:
             backward = f"page_{page - 1}"
             button = event.client.build_reply_markup(
@@ -755,8 +875,6 @@ async def show(event):
                     SENDER,
                     f'{tmpdirname}/out.jpg',
                     buttons=button)
-            # await client.send_message(SENDER, text, parse_mode="html",
-            #                           buttons=button)
         else:
             forward = f"page_{page + 1}"
             button = event.client.build_reply_markup(
@@ -771,8 +889,6 @@ async def show(event):
                     SENDER,
                     f'{tmpdirname}/out.jpg',
                     buttons=button)
-            # await client.send_message(SENDER, text, parse_mode="html",
-            #                           buttons=button)
 
     except Exception as e:
         logger.error(
