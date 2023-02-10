@@ -85,12 +85,12 @@ async def start(event):
                 Button.text("Удалить предсказание")
             ],
             [
-                Button.text("Внести итог"),
+                Button.text("Результат предсказания"),
                 Button.text("Проверить калибровку")
             ],
             [
                 Button.text("Мои категории"),
-                Button.text("Справка")
+                Button.text("Как пользоваться")
             ],
         ]
     )
@@ -98,14 +98,14 @@ async def start(event):
     text = (
         "Привет! Здесь можно оставлять предсказания, записывать, что случилось"
         " в реальности, проверять и, мы все надеемся, -  улучшать свою"
-        " калибровку. Начните знакомство с ботом с кнопки Справка."
+        " калибровку. Начните знакомство с ботом нажав кнопку Как пользоваться."
         " За ней Вы найдете краткую инструкцию к данному боту."
     )
     await client.send_message(SENDER, text, buttons=markup)
     logger.info("Looks like we have a new user!", exc_info=1)
 
 
-@client.on(events.NewMessage(pattern="Справка"))
+@client.on(events.NewMessage(pattern="Как"))
 async def guide(event):
     """Show to a user 'help page'.
 
@@ -134,8 +134,8 @@ async def guide(event):
             " натура перфекциониста** - нажмите на кнопку Удалить"
             " предсказание и затем внесите Ваше предсказание заново;\n"
             "**После того как Вы узнали, чем в реальности обернулись"
-            " предсказанные Вами события** - нажмите на кнопку Внести"
-            " итог;\n"
+            " предсказанные Вами события** - нажмите на кнопку Результат"
+            " предсказания;\n"
             " **Наконец, для того, чтобы уточнить свою калибровку"
             " на основе внесенных ранее предсказаний с известным исходом** - "
             "нажмите на кнопку Проверить калибровку и следуйте дальнейшим"
@@ -163,6 +163,7 @@ async def CUEDhandler(event):
     state = conversation_state.get(who)
     mes = event.message.raw_text
 
+    # CHECK CALIBRATION
     if re.match(r"Проверить", mes):
         conversation_state[who] = State.WAIT_CHECK
         text = (
@@ -268,6 +269,7 @@ async def CUEDhandler(event):
                 del conversation_state[who]
                 logger.debug(f" Check function returned following: {text}")
 
+    # UPDATE METHOD
     elif re.match(r"Обновить", mes):
         conversation_state[who] = State.WAIT_UPDATE
         text = (
@@ -304,7 +306,7 @@ async def CUEDhandler(event):
                     " 5 цифр, разделенных точкой с запятой и пробелом.\n"
                     "Проверьте ваше сообщение, нажмите еще раз на кнопку"
                     " Обновить предсказание и отправьте сообщение с"
-                    "  обновленными цифрами еще раз."
+                    " обновленными цифрами еще раз."
                 )
             )
             del conversation_state[who]
@@ -338,6 +340,76 @@ async def CUEDhandler(event):
                     f"Предсказание с номером {index} успешно обновлено."
                 )
                 logger.info(f"Prediction with id {index} successfully updated")
+                del conversation_state[who]
+    # ENTER OUTCOME
+    elif re.match(r"Результат", mes):
+        conversation_state[who] = State.WAIT_ENTER
+        text = (
+            "Для того чтобы внести результат предсказания, отправьте две"
+            " цифры - номер предсказания и итог, например - <17; 0.00008>"
+            " без кавычек."
+            )
+        await event.respond(text)
+    elif state == State.WAIT_ENTER:
+        query = (
+            "SELECT id FROM"
+            " predictions.raw_predictions WHERE user_id = %s"
+        )
+        crsr.execute(query, [who])
+        user_predictions = crsr.fetchall()  # fetch all the results
+        # If there is no categories yet, print a warning
+        if not user_predictions:
+            text = (
+                "Кажется, Вы еще не сохраняли предсказаний."
+                " Попробуйте."
+            )
+            del conversation_state[who]
+            await client.send_message(who, text, parse_mode="html")
+            logger.info("Someone tried to enter an outcome of a prediction"
+                        " without making at least one themselve")
+
+        if not validate_outcome(mes):
+            await client.send_message(
+                (
+                    "К сожалению Ваше сообщение не похоже на две цифры,"
+                    " разделенные точкой с запятой и пробелом. Пожалуйста"
+                    " повторно нажмите на кнопку Результат предсказания"
+                    ", исправьте текст сообщения и отправьте его еще раз."
+                )
+            )
+            logger.info("Outcome message isn't valid")
+            del conversation_state[who]
+
+        else:
+            mes_list = [str(x) for x in chain.from_iterable(user_predictions)]
+            list_of_words = mes.split("; ")
+            pred_id = list_of_words[0]
+            actual_outcome = list_of_words[1]
+
+            if pred_id not in mes_list:
+                await client.send_message(
+                    who,
+                    ("Номер предсказания не совпадает ни с одним из сделанных"
+                     " Вами предсказаний. Пожалуйста внесите корректный номер.")
+                )
+                del conversation_state[who]
+            # Create the tuple "params" with all the parameters inserted
+            # by the user
+            else:
+                params = (actual_outcome, pred_id)
+                sql_command = """UPDATE predictions.raw_predictions SET
+                actual_outcome=%s WHERE id=%s;"""
+
+                crsr.execute(sql_command, params)  # Execute the query
+                conn.commit()  # Commit the changes
+                await client.send_message(
+                    who,
+                    (f"Результат предсказание с номером {pred_id}"
+                     " успешно внесен.")
+                )
+                logger.info(
+                    f"Outcome of the prediction with id {pred_id}"
+                    "successfully entered")
                 del conversation_state[who]
 
 
@@ -630,98 +702,6 @@ async def display_categories(event):
         )
         return
 
-
-# @client.on(events.NewMessage(pattern="Update"))
-# async def update(event):
-#     """Update previously made prediction.
-
-#     We get new predicted numbers from the user and update
-#     the prediction specified by id.
-
-#     Args:
-#         event (EventCommon): NewMessage event
-#     """
-#     try:
-#         # Get the sender
-#         sender = await event.get_sender()
-#         SENDER = sender.id
-
-#         # Start a conversation
-#         async with client.conversation(
-#             await event.get_chat(), exclusive=True
-#         ) as conv:
-#             text = (
-#                 "If it is time to shift your beliefs in accordance with "
-#                 "a new evidence or you've just changed your mind here what "
-#                 "you need to do:\nenter the id of your prediction; new lower "
-#                 "and upper bounds on it with 50 and 90 percent confidence.\n"
-#                 "For example: 1; 3; 5; 1; 8"
-#             )
-#             await conv.send_message(text)
-#             response = await conv.get_response(timeout=600)
-#             if not validate_updating(response.text):
-#                 await conv.send_message(
-#                     (
-#                         "Sorry but your input isn't valid."
-#                         " Please check that your update message consists of"
-#                         " 5 numbers separated by semicolon and whitespace"
-#                         " and also make sure your first number is decimal."
-#                     )
-#                 )
-#                 logger.info("Update message isn't valid")
-#             else:
-#                 list_of_words = response.text.split("; ")
-#                 user_id = SENDER
-#                 # Use the datetime library to the get the date
-#                 # (and format it as DAY/MONTH/YEAR)
-#                 date = datetime.now().strftime("%d/%m/%Y")
-#                 pred_id = list_of_words[0]
-#                 pred_low_50_conf = list_of_words[1]
-#                 pred_high_50_conf = list_of_words[2]
-#                 pred_low_90_conf = list_of_words[3]
-#                 pred_high_90_conf = list_of_words[4]
-#                 actual_outcome = None
-
-#                 # Create the tuple "params" with all the parameters inserted
-#                 # by the user
-#                 params = (
-#                     pred_id,
-#                     user_id,
-#                     date,
-#                     pred_low_50_conf,
-#                     pred_high_50_conf,
-#                     pred_low_90_conf,
-#                     pred_high_90_conf,
-#                     actual_outcome,
-#                     pred_id,
-#                 )
-#                 sql_command = """UPDATE predictions.raw_predictions SET id=%s,
-#                 user_id=%s, date=%s, pred_low_50_conf=%s, pred_high_50_conf=%s,
-#                 pred_low_90_conf=%s, pred_high_50_conf=%s, actual_outcome=%s
-#                 WHERE id=%s;"""
-
-#                 crsr.execute(sql_command, params)  # Execute the query
-#                 conn.commit()  # Commit the changes
-
-#                 # If at least 1 row is affected by the query we send
-#                 # a specific message
-#                 if crsr.rowcount < 1:
-#                     text = f"Prediction with id {pred_id} is not present"
-#                     await client.send_message(SENDER, text, parse_mode="html")
-#                     logger.info(f"Update was aborted with the text: {text}")
-#                 else:
-#                     text = f"Prediction with id {pred_id} correctly updated"
-#                     await client.send_message(SENDER, text, parse_mode="html")
-#                     logger.debug(text)
-#         await conv.cancel_all()
-#         return
-
-#     except Exception as e:
-#         logger.error(
-#             "Something went wrong when updating user's prediction "
-#             f"with an error: {e}"
-#         )
-#         return
 
 
 @client.on(events.NewMessage(pattern="Enter"))
