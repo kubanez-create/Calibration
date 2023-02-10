@@ -1,8 +1,8 @@
 -- DELETE FROM predictions.raw_predictions WHERE id = 2;
 
--- SELECT * FROM predictions.raw_predictions LIMIT 10, 10;
+SELECT * FROM predictions.raw_predictions LIMIT 20, 10;
 
-SELECT DISTINCT user_id FROM predictions.raw_predictions;
+-- SELECT DISTINCT user_id FROM predictions.raw_predictions;
 
 -- SELECT tot_acc_50 / tot_num_pred AS calibration_50,
 --        tot_acc_90 / tot_num_pred AS calibration_90

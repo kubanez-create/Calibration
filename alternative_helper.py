@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from itertools import chain
 
-
+SMILES_NUMBER: int = 20
 def create_message_categories(ans: list[str]):
     """Create a coherent message out of a given categories' list.
 
@@ -38,24 +38,23 @@ def create_message_select_query(ans):
         pred_high_90_conf = i[9]
         actual_outcome = i[10]
 
-        even: str = "even" if n % 2 == 0 else "odd"
         text += (
-            f"<tr class={even}><td>{str(id)}</td><td>{date}</td><td>"
-            f"{task_description}</td><td>{task_category}</td><td>"
-            f"{unit_of_measure}</td><td>{str(pred_low_50_conf)}</td>"
-            f"<td>{str(pred_high_50_conf)}</td>"
-            f"<td>{str(pred_low_90_conf)}</td>"
-            f"<td>{str(pred_high_90_conf)}</td>"
-            f"<td>{str(actual_outcome)}</td></tr>"
+            f"Номер предсказания: <b>{str(id)}</b>\n"
+            "Дата предсказания или дата последнего обновления предсказания:"
+            f" {date}\nТекст предсказания: {task_description}\n"
+            f"Категория предсказания: {task_category}\n"
+            f"Единица измерения: {unit_of_measure}\n"
+            "Нижняя граница диапазона, в котором с уверенностью в 50% будет"
+            f" находиться предсказанное значение: {pred_low_50_conf}\n"
+            "Верхняя граница диапазона, в котором с уверенностью в 50% будет"
+            f" находиться предсказанное значение:{pred_high_50_conf}\n"
+            "Нижняя граница диапазона, в котором с уверенностью в 90% будет"
+            f" находиться предсказанное значение: {pred_low_90_conf}\n"
+            "Верхняя граница диапазона, в котором с уверенностью в 90% будет"
+            f" находиться предсказанное значение: {pred_high_90_conf}\n"
+            f"{['%xE2%x9C%x85'] * SMILES_NUMBER}\n"
         )
     message = (
-        "<html><head></head><body><table class='center'>"
-        "<tr><th>id</th><th>date</th><th>task description</th>"
-        "<th>task category</th><th>unit of measure</th>"
-        "<th>confidence 50 low</th><th>confidence 50 high</th>"
-        "<th>confidence 90 low</th><th>confidence 90 high</th>"
-        "<th>outcome</th></tr>"
-        f"{text}"
-        "</table></body></html>"
+        "Предсказания, сделанные Вами на текущий момент:\n" + text
     )
     return message
