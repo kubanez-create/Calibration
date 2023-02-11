@@ -40,7 +40,7 @@ HOST: str = str(os.getenv("HOST"))
 PORT: str = str(os.getenv("PORT"))
 DATABASE: str = str(os.getenv("DATABASE"))
 
-SESSION_NAME: str = "sessions/ruBot"
+SESSION_NAME: str = "sessions/Bot"
 CHUNK_SIZE: int = 10
 COUNTER: int = None
 TEXT: dict = {}
@@ -558,8 +558,6 @@ async def CUEDhandler(event):
                 # ans here will be the number of rows affected by the delete
                 crsr.execute(sql_command, [pred_id])
                 conn.commit()
-                global COUNTER
-                COUNTER -= 1
                 await client.send_message(
                     who,
                     (f"Предсказание с номером {pred_id} успешно удалено.")
@@ -721,8 +719,6 @@ async def add(event):
         crsr.execute(sql_command, params)  # Execute the query
         conn.commit()  # commit the changes
         await client.send_message(SENDER, "Предсказание успешно сохранено")
-        global COUNTER
-        COUNTER += 1
         del conversation_state[SENDER]
         del TEXT
 
@@ -772,6 +768,8 @@ async def display(event):
         res = crsr.fetchall()  # fetch all the results
         # If there is at least 1 row selected, print a message with the list
         # of all predictions
+        global COUNTER
+        COUNTER = len(res)
         if res:
             message = res[0:CHUNK_SIZE]
             if len(res) <= CHUNK_SIZE:
@@ -842,13 +840,6 @@ async def show(event):
                 ]
             )
 
-        else:
-            forward = f"page_{page + 1}"
-            button = event.client.build_reply_markup(
-                [
-                    Button.inline("Следующий", data=forward),
-                ]
-            )
         await client.send_message(
             SENDER,
             text,
@@ -911,9 +902,6 @@ if __name__ == "__main__":
 
         crsr.execute(sql_command)
         logger.info("All tables are ready")
-
-        crsr.execute("SELECT COUNT(*) FROM predictions.raw_predictions;")
-        COUNTER = crsr.fetchall()[0][0]
 
         logger.info("Bot Started...")
         client.run_until_disconnected()
