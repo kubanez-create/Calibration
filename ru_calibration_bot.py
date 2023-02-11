@@ -31,7 +31,7 @@ from validators import (
 
 load_dotenv()
 
-TELEGRAM_TOKEN: str = "5846308603:AAETAEAYZ5GCXf09bYDQgznz14WjO6qEXZ8"
+TELEGRAM_TOKEN: str = str(os.getenv("TELEGRAM_TOKEN"))
 API_HASH: str = str(os.getenv("API_HASH"))
 API_ID: int = int(os.getenv("API_ID"))
 USER: str = str(os.getenv("USER"))
