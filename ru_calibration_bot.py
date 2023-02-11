@@ -6,7 +6,6 @@ import logging
 import os
 import re
 import sys
-import tempfile
 from datetime import datetime
 from enum import Enum, auto
 from itertools import chain
@@ -18,10 +17,17 @@ from dotenv import load_dotenv
 # pip install telethon
 from telethon import Button, TelegramClient, events
 
-from alternative_helper import one_message
-from converter import converter
-from helpers import create_message_categories, create_message_select_query
-from validators import validate_checking, validate_outcome, validate_updating
+from alternative_helper import (
+    one_message,
+    create_message_select_query,
+    create_message_categories
+)
+from validators import (
+    validate_checking,
+    validate_outcome,
+    validate_updating,
+    validate_deletion
+)
 
 load_dotenv()
 
@@ -101,10 +107,11 @@ async def start(event):
     text = (
         "Привет! Здесь можно оставлять предсказания, записывать, что случилось"
         " в реальности, проверять и, мы все надеемся, -  улучшать свою"
-        " калибровку. Начните знакомство с ботом нажав кнопку Как"
-        " пользоваться. За ней Вы найдете краткую инструкцию к данному боту."
+        " калибровку. Начните знакомство с ботом нажав кнопку <i>Как"
+        " пользоваться</i>. За ней Вы найдете краткую инструкцию к данному"
+        " боту."
     )
-    await client.send_message(SENDER, text, buttons=markup)
+    await client.send_message(SENDER, text, buttons=markup, parse_mode="html")
     logger.info("Looks like we have a new user!", exc_info=1)
 
 
@@ -117,39 +124,41 @@ async def guide(event):
     Args:
         event (EventCommon): NewMessage event
     """
+    SMILE_MAIN: str = "\U0001F535"
+    SMILE_INFO: str = "\U00002139"
     try:
         text = (
             "Целью создания данного бота был сбор Ваших предсказаний"
             ", сохранение их, чтобы Вы смогли проверить насколько"
             " хорошо Вы калиброваны в целом и/или в какой-то отдельной"
-            " категории.\n"
-            "**Чтобы добавить новое предсказание** - нажмите на кнопку"
-            " Добавить предсказание; \n"
-            "Для того, чтобы удалить, обновить или внести итог ранее"
-            " сделанного предсказания Вам понадобится **уточнить номер**"
-            " этого предсказания. Для этого нажмите на кнопку"
-            " Показать предсказания;\n"
-            "**Для того, чтобы обновить ранее сделанное предсказание ("
-            "обычно в свете некоторых новых наблюдений)** - нажмите на"
-            " кнопку Обновить предсказание;\n"
-            "**В случае, если в процессе добавления новое предсказания"
-            " Вы совершили больше ошибок, нежели то дозволяет Ваша"
-            " натура перфекциониста** - нажмите на кнопку Удалить"
-            " предсказание и затем внесите Ваше предсказание заново;\n"
-            "**После того как Вы узнали, чем в реальности обернулись"
-            " предсказанные Вами события** - нажмите на кнопку Результат"
-            " предсказания;\n"
-            " **Наконец, для того, чтобы уточнить свою калибровку"
-            " на основе внесенных ранее предсказаний с известным исходом** - "
-            "нажмите на кнопку Проверить калибровку и следуйте дальнейшим"
-            " инструкциям;\n"
-            "Если же, по какой-то причине, Вы начали пользоваться данным ботом"
-            " и ощутили желание поучаствовать в улучшении его фунциональности"
-            " или высказать автору что за полный отстой он создал (даже в "
-            "змейку не поиграешь) - отправьте мне письмо по адресу"
-            " kubanez74@gmail.com."
+            " категории.\n\nЧто означают кнопки, которые Вы видите внизу:\n"
+            f"{SMILE_MAIN} <b>Чтобы добавить новое предсказание</b> - нажмите"
+            " на кнопку <i>Добавить предсказание</i>; \n\n"
+            f"{SMILE_MAIN} Для того, чтобы удалить, обновить или внести итог"
+            " ранее сделанного предсказания Вам понадобится <b>уточнить"
+            " номер</b> этого предсказания. Для этого нажмите на кнопку"
+            " <i>Показать предсказания</i>;\n\n"
+            f"{SMILE_MAIN} <b>Для того, чтобы обновить ранее сделанное"
+            " предсказание (обычно в свете некоторых новых наблюдений)</b>"
+            " - нажмите на кнопку <i>Обновить предсказание</i>;\n\n"
+            f"{SMILE_MAIN} <b>В случае, если в процессе добавления новое"
+            " предсказания Вы совершили больше ошибок, нежели то дозволяет"
+            " Ваша натура перфекциониста</b> - нажмите на кнопку <i>Удалить"
+            " предсказание</i> и затем внесите Ваше предсказание заново;\n\n"
+            f"{SMILE_MAIN} <b>После того как Вы узнали, чем в реальности"
+            " обернулись предсказанные Вами события</b> - нажмите на кнопку"
+            " <i>Результат предсказания</i>;\n\n"
+            f"{SMILE_MAIN} <b>Наконец, для того, чтобы уточнить свою"
+            " калибровку на основе внесенных ранее предсказаний с"
+            " известным исходом</b> - нажмите на кнопку <i>Проверить"
+            " калибровку</i> и следуйте дальнейшим инструкциям;\n\n"
+            f"{SMILE_INFO} Если же, по какой-то причине, Вы начали"
+            " пользоваться данным ботом и ощутили желание поучаствовать в"
+            " улучшении его фунциональности или высказать автору что за полный"
+            " отстой он создал (даже в змейку не поиграешь) - отправьте мне"
+            " письмо по адресу kubanez74@gmail.com."
         )
-        await event.respond(text)
+        await event.respond(text, parse_mode='html')
 
     except Exception as e:
         logger.error(
@@ -217,7 +226,7 @@ async def CUEDhandler(event):
         conversation_state[who] = State.WAIT_CHECK
         text = (
             "Если Вы хотели бы проверить общую калибровку по всем сделанным"
-            " предсказаниям - отправьте слово общая. Если Вас интересует"
+            " предсказаниям - отправьте слово общая.\n\n Если Вас интересует"
             " калибровка по какой-то отдельной категории - отправьте"
             " название данной категории. Например, можно отправить <общая>"
             " или <работа> или <политика> без кавычек и/или знаков препинания."
@@ -233,7 +242,9 @@ async def CUEDhandler(event):
         res = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
         if not res:
-            text = "Кажется, Вы еще не сохраняли предсказаний." " Попробуйте."
+            text = ("Кажется, Вы еще не сохраняли предсказаний."
+                    " Попробуйте."
+                    )
             del conversation_state[who]
             await client.send_message(who, text, parse_mode="html")
         else:
@@ -312,7 +323,7 @@ async def CUEDhandler(event):
                     res = crsr.fetchall()  # fetch all the results
                     text = (
                         "Ваша калибровка для выбранной категории"
-                        " на текущий момент составляет:"
+                        " на текущий момент составляет:\n\n"
                         f"для 50% уровня уверенности - {res[0][0]:.2f}"
                         "\n"
                         f"для 90% уровня уверенности - {res[0][1]:.2f}"
@@ -326,11 +337,11 @@ async def CUEDhandler(event):
         conversation_state[who] = State.WAIT_UPDATE
         text = (
             "Для того, чтобы обновить ранее внесенное предсказание ("
-            "изменить нижнюю и верхнюю границу), обычно в свете нового"
-            " знания, внесите номер предсказания, которое Вы желаете обновить"
-            " и затем 4 цифры, разделенные точкой с запятой и пробелом"
-            " - новую нижнюю и верхнюю границы"
-            " для 50% и 90% уровней уверенности.\nНапример: 1; 3; 5; 1; 8"
+            "изменить нижнюю и верхнюю границу предсказанного значения),"
+            " обычно в свете нового знания, внесите номер предсказания,"
+            " которое Вы желаете обновить и затем 4 цифры, разделенные"
+            " точкой с запятой и пробелом - новую нижнюю и верхнюю границы"
+            " для 50% и 90% уровней уверенности.\n\nНапример: 1; 3; 5; 1; 8"
         )
         await event.respond(text)
 
@@ -343,7 +354,9 @@ async def CUEDhandler(event):
         user_predictions = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
         if not user_predictions:
-            text = "Кажется, Вы еще не сохраняли предсказаний." " Попробуйте."
+            text = (
+                "Кажется, Вы еще не сохраняли предсказаний."
+                " Попробуйте.")
             del conversation_state[who]
             await client.send_message(who, text, parse_mode="html")
             logger.info(
@@ -352,13 +365,15 @@ async def CUEDhandler(event):
             )
         if not validate_updating(mes):
             await client.send_message(
+                who,
                 (
                     "К сожалению, отправленное вами сообщение не похоже на"
-                    " 5 цифр, разделенных точкой с запятой и пробелом.\n"
+                    " 5 цифр, разделенных точкой с запятой и пробелом.\n\n"
                     "Проверьте ваше сообщение, нажмите еще раз на кнопку"
-                    " Обновить предсказание и отправьте сообщение с"
+                    " <i>Обновить предсказание</i> и отправьте сообщение с"
                     " обновленными цифрами еще раз."
-                )
+                ),
+                parse_mode="html"
             )
             del conversation_state[who]
             logger.info("Update message isn't valid")
@@ -415,7 +430,9 @@ async def CUEDhandler(event):
         user_predictions = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
         if not user_predictions:
-            text = "Кажется, Вы еще не сохраняли предсказаний." " Попробуйте."
+            text = (
+                "Кажется, Вы еще не сохраняли предсказаний."
+                " Попробуйте.")
             del conversation_state[who]
             await client.send_message(who, text, parse_mode="html")
             logger.info(
@@ -425,12 +442,14 @@ async def CUEDhandler(event):
 
         if not validate_outcome(mes):
             await client.send_message(
+                who,
                 (
                     "К сожалению Ваше сообщение не похоже на две цифры,"
                     " разделенные точкой с запятой и пробелом. Пожалуйста"
-                    " повторно нажмите на кнопку Результат предсказания"
+                    " повторно нажмите на кнопку <i>Результат предсказания</i>"
                     ", исправьте текст сообщения и отправьте его еще раз."
-                )
+                ),
+                parse_mode="html"
             )
             logger.info("Outcome message isn't valid")
             del conversation_state[who]
@@ -502,14 +521,15 @@ async def CUEDhandler(event):
                 " without making at least one themselves"
             )
 
-        if not validate_outcome(mes):
+        if not validate_deletion(mes):
             await client.send_message(
+                who,
                 (
                     "К сожалению, Ваше сообщение не похоже на цифру."
                     " Что именно Вы пытаетесь отправить? Попробуйте отправить"
                     " номер предсказания, которое вы пытаетесь удалить еще"
                     " раз, пожалуйста."
-                )
+                 )
             )
             logger.info("Outcome message isn't valid")
             del conversation_state[who]
@@ -561,7 +581,7 @@ async def CUEDhandler(event):
             who,
             (
                 "Отправьте текст предсказания - что должно произойти, по"
-                " Вашему мнению.\nДалее следуйте подсказкам"
+                " Вашему мнению.\n\nДалее следуйте подсказкам"
             ),
         )
 
@@ -569,19 +589,22 @@ async def CUEDhandler(event):
         global TEXT
         TEXT = {}
         TEXT["prediction"] = mes
+        BLACK_HEART = "\U0001F5A4"
+        SMILE_INFO: str = "\U00002139"
         conversation_state[who] = State.WAIT_ADD_CATEGORY
         await client.send_message(
             who,
             (
                 "Отправьте категорию предсказания для того, чтобы у Вас"
                 " была возможность уточнить свою калибровку не только по всем"
-                " сохраненным предсказаниям, но и по отдельной категории.\n"
-                "Это может быть полезно, т.к. мы можем быть одновременно"
-                " великолепно калиброваны во всех, например, рабочих вопросах,"
-                " но быть ужасно калиброваны в вопросах касающихся"
-                " взаимоотношений с людьми.\nДля того, чтобы иметь возможность"
-                " совершенствоваться, нужно понимать, в какой сфере мы не"
-                " совершенны. Отправьте одно слово, характеризующее категорию."
+                " сохраненным предсказаниям, но и по отдельной категории.\n\n"
+                f"{SMILE_INFO}Это может быть полезно, т.к. мы можем быть"
+                " одновременно великолепно калиброваны во всех, например,"
+                " рабочих вопросах, но быть ужасно калиброваны в вопросах"
+                f" касающихся взаимоотношений с людьми{BLACK_HEART}\n\n"
+                "Для того, чтобы иметь возможность совершенствоваться,"
+                " нужно понимать, в какой сфере мы не совершенны. Отправьте"
+                " одно слово, характеризующее категорию."
             ),
         )
     elif state == State.WAIT_ADD_CATEGORY:
@@ -603,9 +626,9 @@ async def CUEDhandler(event):
         await client.send_message(
             who,
             (
-                "Отправьте цифру, соответствующую нижней границе, которую"
-                " может принять предсказанная величина с уверенностью 50%."
-                "Одна цифра и ничего более."
+                "Отправьте число, соответствующее нижней границе, которую"
+                " может принять предсказанная величина с уверенностью в 50%."
+                " Одно число и ничего более."
             ),
         )
     elif state == State.WAIT_ADD_LOW_50:
@@ -614,9 +637,9 @@ async def CUEDhandler(event):
         await client.send_message(
             who,
             (
-                "Отправьте цифру, соответствующую верхней границе, которую"
-                " может принять предсказанная величина с уверенностью 50%."
-                "Одна цифра и ничего более."
+                "Отправьте число, соответствующее верхней границе, которую"
+                " может принять предсказанная величина с уверенностью в 50%."
+                " Одно число и ничего более."
             ),
         )
     elif state == State.WAIT_ADD_HI_50:
@@ -625,9 +648,9 @@ async def CUEDhandler(event):
         await client.send_message(
             who,
             (
-                "Отправьте цифру, соответствующую нижней границе, которую"
-                " может принять предсказанная величина с уверенностью 90%."
-                "Одна цифра и ничего более."
+                "Отправьте число, соответствующую нижней границе, которую"
+                " может принять предсказанная величина с уверенностью в 90%."
+                " Одно число и ничего более."
             ),
         )
     elif state == State.WAIT_ADD_LOW_90:
@@ -637,8 +660,8 @@ async def CUEDhandler(event):
             who,
             (
                 "Отправьте цифру, соответствующую верхней границе, которую"
-                " может принять предсказанная величина с уверенностью 90%."
-                "Одна цифра и ничего более."
+                " может принять предсказанная величина с уверенностью в 90%."
+                " Одна цифра и ничего более."
             ),
         )
     elif state == State.WAIT_ADD_HI_90:
@@ -648,8 +671,8 @@ async def CUEDhandler(event):
             who,
             (
                 "Проверьте, пожалуйста, получившееся предсказание."
-                " Если все верно - нажмите <Сохранить>, если нет - "
-                " нажмите на кнопку <Внести повторно>\n"
+                " Если все верно - нажмите <i>Сохранить</i>, если нет - "
+                " нажмите на кнопку </i>Внести повторно</i>\n\n"
                 f"{mess}"
             ),
             buttons=[
@@ -726,7 +749,7 @@ async def show_again(event):
             SENDER,
             (
                 "Отправьте текст предсказания - что должно произойти, по"
-                " Вашему мнению.\nДалее следуйте подсказкам"
+                " Вашему мнению.\n\nДалее следуйте подсказкам"
             ),
         )
         global TEXT
@@ -752,22 +775,17 @@ async def display(event):
         if res:
             message = res[0:CHUNK_SIZE]
             if len(res) <= CHUNK_SIZE:
-                with tempfile.TemporaryDirectory() as tmpdirname:
-                    text = create_message_select_query(message)
-                    converter(text, tmpdirname)
-                    await client.send_file(SENDER, f"{tmpdirname}/out.jpg")
-                # send_message(SENDER, text, parse_mode="html")
+                text = create_message_select_query(message)
+                await client.send_message(SENDER, text, parse_mode='html')
             else:
                 callback_data = f"page_{1}"
                 button = event.client.build_reply_markup(
                     [Button.inline("Next", data=callback_data)]
                 )
-                with tempfile.TemporaryDirectory() as tmpdirname:
-                    text = create_message_select_query(message)
-                    converter(text, tmpdirname)
-                    await client.send_file(
-                        SENDER, f"{tmpdirname}/out.jpg", buttons=button
-                    )
+                text = create_message_select_query(message)
+                await client.send_message(
+                    SENDER, text, buttons=button, parse_mode='html')
+
         # Otherwhise, print a default text
         else:
             text = (
@@ -804,6 +822,7 @@ async def show(event):
         )
         crsr.execute(query, [SENDER, page * CHUNK_SIZE, CHUNK_SIZE])
         res = crsr.fetchall()  # fetch all the results
+        text = create_message_select_query(res)
 
         if page >= 1 and (COUNTER - page * CHUNK_SIZE) > CHUNK_SIZE:
             forward = f"page_{page + 1}"
@@ -814,38 +833,27 @@ async def show(event):
                     Button.inline("Следующий", data=forward),
                 ]
             )
-            with tempfile.TemporaryDirectory() as tmpdirname:
-                text = create_message_select_query(res)
-                converter(text, tmpdirname)
-                await client.send_file(
-                    SENDER, f"{tmpdirname}/out.jpg", buttons=button
-                )
+
         elif page >= 1 and (COUNTER - page * CHUNK_SIZE) <= CHUNK_SIZE:
             backward = f"page_{page - 1}"
             button = event.client.build_reply_markup(
                 [
-                    Button.inline("Previous", data=backward),
+                    Button.inline("Предыдущий", data=backward),
                 ]
             )
-            with tempfile.TemporaryDirectory() as tmpdirname:
-                text = create_message_select_query(res)
-                converter(text, tmpdirname)
-                await client.send_file(
-                    SENDER, f"{tmpdirname}/out.jpg", buttons=button
-                )
+
         else:
             forward = f"page_{page + 1}"
             button = event.client.build_reply_markup(
                 [
-                    Button.inline("Next", data=forward),
+                    Button.inline("Следующий", data=forward),
                 ]
             )
-            with tempfile.TemporaryDirectory() as tmpdirname:
-                text = create_message_select_query(res)
-                converter(text, tmpdirname)
-                await client.send_file(
-                    SENDER, f"{tmpdirname}/out.jpg", buttons=button
-                )
+        await client.send_message(
+            SENDER,
+            text,
+            parse_mode='html',
+            buttons=button)
 
     except Exception as e:
         logger.error(

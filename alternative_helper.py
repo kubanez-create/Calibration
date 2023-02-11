@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from itertools import chain
 
-SMILES_NUMBER: int = 20
+SMILES_NUMBER: int = 60
 
 
 def create_message_categories(ans: list[str]):
@@ -15,7 +15,7 @@ def create_message_categories(ans: list[str]):
     Returns:
         str: message ready to be sent to a user
     """
-    return ('Зарегистрированные Вами категории:'
+    return ('Ваши категории: '
             f'{"; ".join(chain.from_iterable(ans))}'
             )
 
@@ -29,6 +29,9 @@ def create_message_select_query(ans):
     Returns:
         str: message ready to be sent to a user
     """
+    SMALL_DIAMOND = "\U0001F538"
+    PENCIL = "\U0000270F"
+    BLACK_SQUARE = "\U000025AA"
     text = ""
     for n, i in enumerate(ans):
         id = i[0]
@@ -40,24 +43,22 @@ def create_message_select_query(ans):
         pred_high_50_conf = i[7]
         pred_low_90_conf = i[8]
         pred_high_90_conf = i[9]
+        actual_outcome = i[10]
 
         text += (
-            f"Номер предсказания: <b>{str(id)}</b>\n"
-            "Дата предсказания или дата последнего обновления предсказания:"
-            f" {date}\nТекст предсказания: {task_description}\n"
-            f"Категория предсказания: {task_category}\n"
-            f"Единица измерения: {unit_of_measure}\n"
-            "Нижняя граница диапазона, в котором с уверенностью в 50% будет"
-            f" находиться предсказанное значение: {pred_low_50_conf}\n"
-            "Верхняя граница диапазона, в котором с уверенностью в 50% будет"
-            f" находиться предсказанное значение:{pred_high_50_conf}\n"
-            "Нижняя граница диапазона, в котором с уверенностью в 90% будет"
-            f" находиться предсказанное значение: {pred_low_90_conf}\n"
-            "Верхняя граница диапазона, в котором с уверенностью в 90% будет"
-            f" находиться предсказанное значение: {pred_high_90_conf}\n"
-            f"{['%xE2%x9C%x85'] * SMILES_NUMBER}\n"
+            f"<b>№: {str(id)}</b>\n"
+            f"<b>{date}</b>\n\n{PENCIL}"
+            f" {task_description}\n\n<b>Категория:</b>"
+            f" {task_category}\n<b>Единица измерения:</b> {unit_of_measure}\n\n"
+            "<b>ГРАНИЦЫ</b>\n"
+            f"{SMALL_DIAMOND} <b>Нижняя 50%:</b> {pred_low_50_conf}\n"
+            f"{SMALL_DIAMOND} <b>Верхняя 50%:</b> {pred_high_50_conf}\n"
+            f"{SMALL_DIAMOND} <b>Нижняя 90%:</b> {pred_low_90_conf}\n"
+            f"{SMALL_DIAMOND} <b>Верхняя 90%:</b> {pred_high_90_conf}\n\n"
+            f"{BLACK_SQUARE} <b>Результат:</b> {actual_outcome or ''}\n"
+            f"{'_' * SMILES_NUMBER}\n\n"
         )
-    message = "Предсказания, сделанные Вами на текущий момент:\n" + text
+    message = "Предсказания, сделанные Вами на текущий момент:\n\n" + text
     return message
 
 
@@ -67,18 +68,18 @@ def one_message(ans: dict[str, str]):
     Args:
         ans (dict[str, str]): dictionary with inputed values
     """
+    SMILE = "\U0001F535"
     message = (
-        f"<b>Текст предсказания:</b> {ans['prediction']}\n"
-        f"<b>Категория предсказания:</b> {ans['category']}\n"
-        f"<b>Единица измерения:</b> {ans['unit']}\n"
-        "<b>Нижняя граница диапазона</b>, в котором с уверенностью в 50% будет"
-        f" находиться предсказанное значение: {ans['low_50']}\n"
-        "<b>Верхняя граница диапазона</b>, в котором с уверенностью в 50%"
-        f" будет находиться предсказанное значение:{ans['hi_50']}\n"
-        "<b>Нижняя граница диапазона</b>, в котором с уверенностью в 90%"
-        f" будет находиться предсказанное значение: {ans['low_90']}\n"
-        "<b>Верхняя граница диапазона</b>, в котором с уверенностью в 90%"
-        f" будет находиться предсказанное значение: {ans['hi_90']}\n"
-        f"{['%xE2%x9C%x85'] * SMILES_NUMBER}\n"
+        f"{SMILE}<b>Текст предсказания:</b> {ans['prediction']}\n"
+        f"{SMILE}<b>Категория предсказания:</b> {ans['category']}\n"
+        f"{SMILE}<b>Единица измерения:</b> {ans['unit']}\n"
+        f"{SMILE}<b>Нижняя граница диапазона</b>, в котором с уверенностью в"
+        f" 50% будет находиться предсказанное значение: {ans['low_50']}\n"
+        f"{SMILE}<b>Верхняя граница диапазона</b>, в котором с уверенностью в"
+        f" 50% будет находиться предсказанное значение:{ans['hi_50']}\n"
+        f"{SMILE}<b>Нижняя граница диапазона</b>, в котором с уверенностью в"
+        f" 90% будет находиться предсказанное значение: {ans['low_90']}\n"
+        f"{SMILE}<b>Верхняя граница диапазона</b>, в котором с уверенностью в"
+        f" 90% будет находиться предсказанное значение: {ans['hi_90']}\n"
     )
     return message
