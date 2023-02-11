@@ -210,6 +210,7 @@ async def CUEDhandler(event):
     who = sender.id
     state = conversation_state.get(who)
     mes = event.message.raw_text
+    global TEXT
 
     # CHECK CALIBRATION
     if re.match(r"Проверить", mes):
@@ -565,6 +566,8 @@ async def CUEDhandler(event):
         )
 
     if state == State.WAIT_ADD_PREDICTION:
+        global TEXT
+        TEXT = {}
         TEXT["prediction"] = mes
         conversation_state[who] = State.WAIT_ADD_CATEGORY
         await client.send_message(
@@ -646,13 +649,14 @@ async def CUEDhandler(event):
             (
                 "Проверьте, пожалуйста, получившееся предсказание."
                 " Если все верно - нажмите <Сохранить>, если нет - "
-                " нажмите на кнопку <Внести повторно>"
+                " нажмите на кнопку <Внести повторно>\n"
                 f"{mess}"
             ),
             buttons=[
                 Button.inline("Сохранить", data="Добавить сохранить"),
                 Button.inline("Внести повторно", data="Добавить повторно"),
             ],
+            parse_mode="html"
         )
 
 

@@ -43,7 +43,6 @@ def validate_updating(ans):
 def validate_checking(string: str):
     commands = [
         "/start",
-        "Добавить предсказание",
         "Показать предсказания",
         "Мои категории",
         "Как пользоваться"
@@ -57,6 +56,7 @@ def validate_checking(string: str):
 def validate_calibration(ans):
     """This function here entirely for the backward compatibility."""
     return True
+
 
 def validate_deletion(ans):
     """Validate user provided id.
