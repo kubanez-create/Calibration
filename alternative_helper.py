@@ -15,7 +15,9 @@ def create_message_categories(ans: list[str]):
     Returns:
         str: message ready to be sent to a user
     """
-    return f'Зарегистрированные Вами категории: {"; ".join(chain.from_iterable(ans))}'
+    return ('Зарегистрированные Вами категории:'
+            f'{"; ".join(chain.from_iterable(ans))}'
+            )
 
 
 def create_message_select_query(ans):
@@ -55,10 +57,9 @@ def create_message_select_query(ans):
             f" находиться предсказанное значение: {pred_high_90_conf}\n"
             f"{['%xE2%x9C%x85'] * SMILES_NUMBER}\n"
         )
-    message = (
-        "Предсказания, сделанные Вами на текущий момент:\n" + text
-    )
+    message = "Предсказания, сделанные Вами на текущий момент:\n" + text
     return message
+
 
 def one_message(ans: dict[str, str]):
     """Create a message to show to a user.
@@ -68,17 +69,17 @@ def one_message(ans: dict[str, str]):
     """
     message = (
         "Предсказания, сделанные Вами на текущий момент:\n"
-        f"Текст предсказания: {ans["prediction"]}\n"
-        f"Категория предсказания: {ans["category"]}\n"
-        f"Единица измерения: {ans["unit"]}\n"
+        f"Текст предсказания: {ans['prediction']}\n"
+        f"Категория предсказания: {ans['category']}\n"
+        f"Единица измерения: {ans['unit']}\n"
         "Нижняя граница диапазона, в котором с уверенностью в 50% будет"
-        f" находиться предсказанное значение: {ans["low_50"]}\n"
+        f" находиться предсказанное значение: {ans['low_50']}\n"
         "Верхняя граница диапазона, в котором с уверенностью в 50% будет"
-        f" находиться предсказанное значение:{ans["hi_50"]}\n"
+        f" находиться предсказанное значение:{ans['hi_50']}\n"
         "Нижняя граница диапазона, в котором с уверенностью в 90% будет"
-        f" находиться предсказанное значение: {ans["low_90"]}\n"
+        f" находиться предсказанное значение: {ans['low_90']}\n"
         "Верхняя граница диапазона, в котором с уверенностью в 90% будет"
-        f" находиться предсказанное значение: {ans["hi_90"]}\n"
+        f" находиться предсказанное значение: {ans['hi_90']}\n"
         f"{['%xE2%x9C%x85'] * SMILES_NUMBER}\n"
     )
     return message

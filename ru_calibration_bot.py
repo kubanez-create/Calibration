@@ -4,33 +4,28 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
-from datetime import datetime
 import re
+import sys
 import tempfile
+from datetime import datetime
 from enum import Enum, auto
-from logging.handlers import RotatingFileHandler
 from itertools import chain
+from logging.handlers import RotatingFileHandler
 
 import mysql.connector
 from dotenv import load_dotenv
+
 # pip install telethon
 from telethon import Button, TelegramClient, events
 
-from helpers import create_message_categories, create_message_select_query
 from alternative_helper import one_message
 from converter import converter
-from validators import (
-    validate_checking,
-    validate_creating,
-    validate_deletion,
-    validate_outcome,
-    validate_updating,
-)
+from helpers import create_message_categories, create_message_select_query
+from validators import validate_checking, validate_outcome, validate_updating
 
 load_dotenv()
 
-TELEGRAM_TOKEN: str = '5846308603:AAETAEAYZ5GCXf09bYDQgznz14WjO6qEXZ8'
+TELEGRAM_TOKEN: str = "5846308603:AAETAEAYZ5GCXf09bYDQgznz14WjO6qEXZ8"
 API_HASH: str = str(os.getenv("API_HASH"))
 API_ID: int = int(os.getenv("API_ID"))
 USER: str = str(os.getenv("USER"))
@@ -62,9 +57,6 @@ class State(Enum):
     WAIT_ADD_HI_50 = auto()
     WAIT_ADD_LOW_90 = auto()
     WAIT_ADD_HI_90 = auto()
-    WAIT_ADD_FINAL = auto()
-    WAIT_ADD_SAVE = auto()
-    WAIT_ADD_REDO = auto()
 
 
 # The state in which different users are, {user_id: state}
@@ -94,11 +86,10 @@ async def start(event):
             ],
             [
                 Button.text("Обновить предсказание"),
-                Button.text("Удалить предсказание")
-            ],
+                Button.text("Удалить предсказание")],
             [
                 Button.text("Результат предсказания"),
-                Button.text("Проверить калибровку")
+                Button.text("Проверить калибровку"),
             ],
             [
                 Button.text("Мои категории"),
@@ -110,8 +101,8 @@ async def start(event):
     text = (
         "Привет! Здесь можно оставлять предсказания, записывать, что случилось"
         " в реальности, проверять и, мы все надеемся, -  улучшать свою"
-        " калибровку. Начните знакомство с ботом нажав кнопку Как пользоваться."
-        " За ней Вы найдете краткую инструкцию к данному боту."
+        " калибровку. Начните знакомство с ботом нажав кнопку Как"
+        " пользоваться. За ней Вы найдете краткую инструкцию к данному боту."
     )
     await client.send_message(SENDER, text, buttons=markup)
     logger.info("Looks like we have a new user!", exc_info=1)
@@ -162,8 +153,9 @@ async def guide(event):
 
     except Exception as e:
         logger.error(
-            "Something went wrong when showing help page"
-            f" with an error: {e}"
+            ("Something went wrong when showing help page"
+             f" with an error: {e}"
+             )
         )
         return
 
@@ -198,8 +190,10 @@ async def display_categories(event):
                 " предсказания. Попробуйте."
             )
             await client.send_message(SENDER, text, parse_mode="html")
-            logger.debug("Someone tried to have a look at their categories"
-                         " without any made predictions.")
+            logger.debug(
+                "Someone tried to have a look at their categories"
+                " without any made predictions."
+            )
 
     except Exception as e:
         logger.error(
@@ -207,6 +201,7 @@ async def display_categories(event):
             f"with an error: {e}"
         )
         return
+
 
 # Detail view block: update, delete, list, enter outcome methods
 @client.on(events.NewMessage(pattern=validate_checking))
@@ -225,7 +220,7 @@ async def CUEDhandler(event):
             " калибровка по какой-то отдельной категории - отправьте"
             " название данной категории. Например, можно отправить <общая>"
             " или <работа> или <политика> без кавычек и/или знаков препинания."
-            )
+        )
         await event.respond(text)
 
     elif state == State.WAIT_CHECK:
@@ -237,23 +232,25 @@ async def CUEDhandler(event):
         res = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
         if not res:
-            text = (
-                "Кажется, Вы еще не сохраняли предсказаний."
-                " Попробуйте."
-            )
+            text = "Кажется, Вы еще не сохраняли предсказаний." " Попробуйте."
             del conversation_state[who]
             await client.send_message(who, text, parse_mode="html")
         else:
-            cat_list = [a for a in chain.from_iterable(res)] + ["общая", "Общая"]
+            cat_list = [
+                a for a in chain.from_iterable(res)
+            ] + ["общая", "Общая"]
             if mes not in cat_list:
                 await client.send_message(
-                    who, ("Вы не создали ни одного предсказания в данной"
-                          " категории.")
+                    who,
+                    ("Вы не создали ни одного предсказания в данной"
+                     " категории."
+                     )
                 )
                 del conversation_state[who]
                 logger.info(
                     "Someone tried to get a list of categories"
-                    " but have not made any themselves.")
+                    " but have not made any themselves."
+                )
 
             else:
                 # Execute the query and get all (*) predictions
@@ -345,14 +342,13 @@ async def CUEDhandler(event):
         user_predictions = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
         if not user_predictions:
-            text = (
-                "Кажется, Вы еще не сохраняли предсказаний."
-                " Попробуйте."
-            )
+            text = "Кажется, Вы еще не сохраняли предсказаний." " Попробуйте."
             del conversation_state[who]
             await client.send_message(who, text, parse_mode="html")
-            logger.info("Someone tried to update a prediction without"
-                        "making at least one themselve")
+            logger.info(
+                "Someone tried to update a prediction without"
+                "making at least one themselve"
+            )
         if not validate_updating(mes):
             await client.send_message(
                 (
@@ -376,12 +372,15 @@ async def CUEDhandler(event):
             if index not in mes_list:
                 await client.send_message(
                     who,
-                    ("Номер предсказания не совпадает ни с одним из сделанных"
-                     " Вами предсказаний. Пожалуйста внесите корректный номер.")
+                    (
+                        "Номер предсказания не совпадает ни с одним из"
+                        " сделанных Вами предсказаний. Пожалуйста"
+                        " внесите корректный номер."
+                    ),
                 )
                 del conversation_state[who]
                 logger.info(
-                    "Someone tried to update a someone else's prediction "
+                    "Someone tried to update a someone else's prediction."
                 )
             else:
                 params = (low_50, hi_50, low_90, hi_90, index)
@@ -393,8 +392,7 @@ async def CUEDhandler(event):
                 crsr.execute(sql_command, params)  # Execute the query
                 conn.commit()  # Commit the changes
                 await client.send_message(
-                    who,
-                    f"Предсказание с номером {index} успешно обновлено."
+                    who, f"Предсказание с номером {index} успешно обновлено."
                 )
                 logger.info(f"Prediction with id {index} successfully updated")
                 del conversation_state[who]
@@ -405,7 +403,7 @@ async def CUEDhandler(event):
             "Для того чтобы внести результат предсказания, отправьте две"
             " цифры - номер предсказания и итог, например - <17; 0.00008>"
             " без кавычек."
-            )
+        )
         await event.respond(text)
     elif state == State.WAIT_ENTER:
         query = (
@@ -416,14 +414,13 @@ async def CUEDhandler(event):
         user_predictions = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
         if not user_predictions:
-            text = (
-                "Кажется, Вы еще не сохраняли предсказаний."
-                " Попробуйте."
-            )
+            text = "Кажется, Вы еще не сохраняли предсказаний." " Попробуйте."
             del conversation_state[who]
             await client.send_message(who, text, parse_mode="html")
-            logger.info("Someone tried to enter an outcome of a prediction"
-                        " without making at least one themselve")
+            logger.info(
+                "Someone tried to enter an outcome of a prediction"
+                " without making at least one themselve"
+            )
 
         if not validate_outcome(mes):
             await client.send_message(
@@ -446,14 +443,16 @@ async def CUEDhandler(event):
             if pred_id not in mes_list:
                 await client.send_message(
                     who,
-                    ("Номер предсказания не совпадает ни с одним из сделанных"
-                     " Вами предсказаний. Пожалуйста внесите корректный номер."
-                     )
+                    (
+                        "Номер предсказания не совпадает ни с одним из"
+                        " сделанных Вами предсказаний. Пожалуйста"
+                        " внесите корректный номер."
+                    ),
                 )
                 del conversation_state[who]
                 logger.info(
-                    "Someone tried to enter outcome for a someone else's"
-                    " prediction."
+                    ("Someone tried to enter outcome for a someone else's"
+                     " prediction.")
                 )
             # Create the tuple "params" with all the parameters inserted
             # by the user
@@ -467,11 +466,12 @@ async def CUEDhandler(event):
                 await client.send_message(
                     who,
                     (f"Результат предсказание с номером {pred_id}"
-                     " успешно внесен.")
+                     " успешно внесен."),
                 )
                 logger.info(
                     f"Outcome of the prediction with id {pred_id}"
-                    "successfully entered")
+                    "successfully entered"
+                )
                 del conversation_state[who]
     # DELETE METHOD
     elif re.match(r"Удалить", mes):
@@ -479,7 +479,7 @@ async def CUEDhandler(event):
         text = (
             "Для того, чтобы удалить ранее сделанное предсказание,"
             " отправьте его номер в ответном сообщении."
-            )
+        )
         await event.respond(text)
     elif state == State.WAIT_DELETE:
         query = (
@@ -496,16 +496,18 @@ async def CUEDhandler(event):
             )
             del conversation_state[who]
             await client.send_message(who, text, parse_mode="html")
-            logger.info("Someone tried to delete a prediction"
-                        " without making at least one themselves")
+            logger.info(
+                "Someone tried to delete a prediction"
+                " without making at least one themselves"
+            )
 
         if not validate_outcome(mes):
             await client.send_message(
                 (
                     "К сожалению, Ваше сообщение не похоже на цифру."
                     " Что именно Вы пытаетесь отправить? Попробуйте отправить"
-                    " номер предсказания, которое вы пытаетесь удалить еще раз,"
-                    " пожалуйста."
+                    " номер предсказания, которое вы пытаетесь удалить еще"
+                    " раз, пожалуйста."
                 )
             )
             logger.info("Outcome message isn't valid")
@@ -517,8 +519,11 @@ async def CUEDhandler(event):
             if pred_id not in mes_list:
                 await client.send_message(
                     who,
-                    ("Номер предсказания не совпадает ни с одним из сделанных"
-                     " Вами предсказаний. Пожалуйста внесите корректный номер.")
+                    (
+                        "Номер предсказания не совпадает ни с одним из"
+                        " сделанных Вами предсказаний. Пожалуйста"
+                        " внесите корректный номер."
+                    ),
                 )
                 del conversation_state[who]
                 logger.info(
@@ -536,175 +541,136 @@ async def CUEDhandler(event):
                 COUNTER -= 1
                 await client.send_message(
                     who,
-                    (f"Предсказание с номером {pred_id}"
-                     " успешно удалено.")
+                    (f"Предсказание с номером {pred_id} успешно удалено.")
                 )
                 logger.info(
-                    f"Prediction with id {pred_id}"
-                    "successfully deleted")
+                    f"Prediction with id {pred_id} successfully deleted"
+                )
                 del conversation_state[who]
 
+    # ADD PREDICTION METHOD
+    elif re.match("Добавить", mes):
+        """Add new prediction.
 
-@client.on(events.NewMessage(pattern="Добавить"))
-async def add_prediction(event):
-    """Add new prediction.
-
-    Args:
-        event (EventCommon): NewMessage event
-    """
-    sender = await event.get_sender()
-    SENDER = sender.id
-    state = conversation_state.get(SENDER)
-    mes = event.message.raw_text
-    if state is None:
-        conversation_state[SENDER] = State.WAIT_ADD_PREDICTION
+        Args:
+            event (EventCommon): NewMessage event
+        """
+        conversation_state[who] = State.WAIT_ADD_PREDICTION
         await client.send_message(
-            SENDER,
-            ("Отправьте текст предсказания - что должно произойти, по"
-             " Вашему мнению.\nДалее следуйте подсказкам"),
-            buttons=[
-                Button.inline(
-                    "Предсказание",
-                    data="Добавить текст предсказания"
-                )
-            ]
+            who,
+            (
+                "Отправьте текст предсказания - что должно произойти, по"
+                " Вашему мнению.\nДалее следуйте подсказкам"
+            ),
         )
-    elif state == State.WAIT_ADD_PREDICTION:
-        TEXT['prediction'] = mes
-        conversation_state[SENDER] = State.WAIT_ADD_CATEGORY
+
+    if state == State.WAIT_ADD_PREDICTION:
+        TEXT["prediction"] = mes
+        conversation_state[who] = State.WAIT_ADD_CATEGORY
         await client.send_message(
-            SENDER,
-            ("Отправьте категорию предсказания для того, чтобы у Вас"
-             " была возможность уточнить свою калибровку не только по всем"
-             " сохраненным предсказаниям, но и по отдельной категории.\n"
-             "Это может быть полезно, т.к. мы можем быть одновременно"
-             " великолепно калиброваны во всех, например, рабочих вопросах, но"
-             " быть ужасно калиброваны в вопросах касающихся"
-             " взаимоотношений с людьми.\nДля того, чтобы иметь возможность"
-             " совершенствоваться, нужно понимать, в какой сфере мы не"
-             " совершенны. Отправьте одно слово, характеризующее категорию."
-             ),
-            buttons=[
-                Button.inline("Категория", data="Добавить текст категории")
-            ]
+            who,
+            (
+                "Отправьте категорию предсказания для того, чтобы у Вас"
+                " была возможность уточнить свою калибровку не только по всем"
+                " сохраненным предсказаниям, но и по отдельной категории.\n"
+                "Это может быть полезно, т.к. мы можем быть одновременно"
+                " великолепно калиброваны во всех, например, рабочих вопросах,"
+                " но быть ужасно калиброваны в вопросах касающихся"
+                " взаимоотношений с людьми.\nДля того, чтобы иметь возможность"
+                " совершенствоваться, нужно понимать, в какой сфере мы не"
+                " совершенны. Отправьте одно слово, характеризующее категорию."
+            ),
         )
     elif state == State.WAIT_ADD_CATEGORY:
-        TEXT['category'] = mes
-        conversation_state[SENDER] = State.WAIT_ADD_UNIT
+        TEXT["category"] = mes
+        conversation_state[who] = State.WAIT_ADD_UNIT
         await client.send_message(
-            SENDER,
-            ("В будущем может так случиться, что Вы захотите узнать"
-             " в каких единицах Вы вносили данное предсказание. Чтобы"
-             " такая возможность у Вас была - отправьте одно слово,"
-             " обозначающее единицу измерения. Например: час, день,"
-             " ребёнки."
-             ),
-            buttons=[
-                Button.inline(
-                    "Единицы измерения",
-                    data="Добавить единицу измерения"
-                )
-            ]
+            who,
+            (
+                "В будущем может так случиться, что Вы захотите узнать"
+                " в каких единицах Вы вносили данное предсказание. Чтобы"
+                " такая возможность у Вас была - отправьте одно слово,"
+                " обозначающее единицу измерения. Например: час, день,"
+                " ребёнки."
+            ),
         )
     elif state == State.WAIT_ADD_UNIT:
-        TEXT['unit'] = mes
-        conversation_state[SENDER] = State.WAIT_ADD_LOW_50
+        TEXT["unit"] = mes
+        conversation_state[who] = State.WAIT_ADD_LOW_50
         await client.send_message(
-            SENDER,
-            ("Отправьте цифру, соответствующую нижней границе, которую"
-             " может принять предсказанная величина с уверенностью 50%."
-             "Одна цифра и ничего более."
-             ),
-            buttons=[
-                Button.inline(
-                    "Нижняя граница при 50% уверенности",
-                    data="Добавить ниж границу 50"
-                )
-            ]
+            who,
+            (
+                "Отправьте цифру, соответствующую нижней границе, которую"
+                " может принять предсказанная величина с уверенностью 50%."
+                "Одна цифра и ничего более."
+            ),
         )
     elif state == State.WAIT_ADD_LOW_50:
-        TEXT['low_50'] = mes
-        conversation_state[SENDER] = State.WAIT_ADD_HI_50
+        TEXT["low_50"] = mes
+        conversation_state[who] = State.WAIT_ADD_HI_50
         await client.send_message(
-            SENDER,
-            ("Отправьте цифру, соответствующую верхней границе, которую"
-             " может принять предсказанная величина с уверенностью 50%."
-             "Одна цифра и ничего более."
-             ),
-            buttons=[
-                Button.inline(
-                    "Верхняя граница при 50% уверенности",
-                    data="Добавить вер границу 50"
-                )
-            ]
+            who,
+            (
+                "Отправьте цифру, соответствующую верхней границе, которую"
+                " может принять предсказанная величина с уверенностью 50%."
+                "Одна цифра и ничего более."
+            ),
         )
     elif state == State.WAIT_ADD_HI_50:
-        TEXT['hi_50'] = mes
-        conversation_state[SENDER] = State.WAIT_ADD_LOW_90
+        TEXT["hi_50"] = mes
+        conversation_state[who] = State.WAIT_ADD_LOW_90
         await client.send_message(
-            SENDER,
-            ("Отправьте цифру, соответствующую нижней границе, которую"
-             " может принять предсказанная величина с уверенностью 90%."
-             "Одна цифра и ничего более."
-             ),
-            buttons=[
-                Button.inline(
-                    "Нижняя граница при 90% уверенности",
-                    data="Добавить ниж границу 90"
-                )
-            ]
+            who,
+            (
+                "Отправьте цифру, соответствующую нижней границе, которую"
+                " может принять предсказанная величина с уверенностью 90%."
+                "Одна цифра и ничего более."
+            ),
         )
     elif state == State.WAIT_ADD_LOW_90:
-        TEXT['low_90'] = mes
-        conversation_state[SENDER] = State.WAIT_ADD_HI_90
+        TEXT["low_90"] = mes
+        conversation_state[who] = State.WAIT_ADD_HI_90
         await client.send_message(
-            SENDER,
-            ("Отправьте цифру, соответствующую верхней границе, которую"
-             " может принять предсказанная величина с уверенностью 90%."
-             "Одна цифра и ничего более."
-             ),
-            buttons=[
-                Button.inline(
-                    "Верхняя граница при 90% уверенности",
-                    data="Добавить вер границу 90"
-                )
-            ]
+            who,
+            (
+                "Отправьте цифру, соответствующую верхней границе, которую"
+                " может принять предсказанная величина с уверенностью 90%."
+                "Одна цифра и ничего более."
+            ),
         )
     elif state == State.WAIT_ADD_HI_90:
+        TEXT["hi_90"] = mes
+        mess = one_message(TEXT)
         await client.send_message(
-            SENDER,
-            ("Проверьте, пожалуйста, получившееся предсказание."
-             " Если все верно - нажмите <Сохранить>, если нет - "
-             " нажмите на кнопку <Внести повторно>"
-             ),
+            who,
+            (
+                "Проверьте, пожалуйста, получившееся предсказание."
+                " Если все верно - нажмите <Сохранить>, если нет - "
+                " нажмите на кнопку <Внести повторно>"
+                f"{mess}"
+            ),
             buttons=[
-                Button.inline(
-                    "Сохранить",
-                    data="Добавить сохранить"
-                ),
-                Button.inline(
-                    "Внести повторно",
-                    data="Добавить повторно"
-                )
-            ]
+                Button.inline("Сохранить", data="Добавить сохранить"),
+                Button.inline("Внести повторно", data="Добавить повторно"),
+            ],
         )
 
 
 @client.on(events.CallbackQuery(data=re.compile(r"Добавить сохранить")))
-async def show(event):
+async def add(event):
     try:
         global TEXT
         sender = await event.get_sender()
         SENDER = sender.id
         user_id = SENDER
         date = datetime.now().strftime("%d/%m/%Y")
-        task_description = TEXT['prediction']
-        task_category = TEXT['category']
-        unit_of_measure = TEXT['unit']
-        pred_low_50_conf = TEXT['low_50']
-        pred_high_50_conf = TEXT['hi_50']
-        pred_low_90_conf = TEXT['low_90']
-        pred_high_90_conf = TEXT['hi_90']
+        task_description = TEXT["prediction"]
+        task_category = TEXT["category"]
+        unit_of_measure = TEXT["unit"]
+        pred_low_50_conf = TEXT["low_50"]
+        pred_high_50_conf = TEXT["hi_50"]
+        pred_low_90_conf = TEXT["low_90"]
+        pred_high_90_conf = TEXT["hi_90"]
         actual_outcome = None
 
         # Create the tuple "params" with all the parameters inserted
@@ -727,10 +693,7 @@ async def show(event):
             VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
         crsr.execute(sql_command, params)  # Execute the query
         conn.commit()  # commit the changes
-        await client.send_message(
-            SENDER,
-            "Предсказание успешно сохранено"
-        )
+        await client.send_message(SENDER, "Предсказание успешно сохранено")
         global COUNTER
         COUNTER += 1
         del conversation_state[SENDER]
@@ -757,14 +720,10 @@ async def show_again(event):
         conversation_state[SENDER] = State.WAIT_ADD_PREDICTION
         await client.send_message(
             SENDER,
-            ("Отправьте текст предсказания - что должно произойти, по"
-             " Вашему мнению.\nДалее следуйте подсказкам"),
-            buttons=[
-                Button.inline(
-                    "Предсказание",
-                    data="Добавить текст предсказания"
-                )
-            ]
+            (
+                "Отправьте текст предсказания - что должно произойти, по"
+                " Вашему мнению.\nДалее следуйте подсказкам"
+            ),
         )
         global TEXT
         del TEXT
@@ -792,9 +751,7 @@ async def display(event):
                 with tempfile.TemporaryDirectory() as tmpdirname:
                     text = create_message_select_query(message)
                     converter(text, tmpdirname)
-                    await client.send_file(
-                        SENDER,
-                        f'{tmpdirname}/out.jpg')
+                    await client.send_file(SENDER, f"{tmpdirname}/out.jpg")
                 # send_message(SENDER, text, parse_mode="html")
             else:
                 callback_data = f"page_{1}"
@@ -805,9 +762,8 @@ async def display(event):
                     text = create_message_select_query(message)
                     converter(text, tmpdirname)
                     await client.send_file(
-                        SENDER,
-                        f'{tmpdirname}/out.jpg',
-                        buttons=button)
+                        SENDER, f"{tmpdirname}/out.jpg", buttons=button
+                    )
         # Otherwhise, print a default text
         else:
             text = (
@@ -858,9 +814,8 @@ async def show(event):
                 text = create_message_select_query(res)
                 converter(text, tmpdirname)
                 await client.send_file(
-                    SENDER,
-                    f'{tmpdirname}/out.jpg',
-                    buttons=button)
+                    SENDER, f"{tmpdirname}/out.jpg", buttons=button
+                )
         elif page >= 1 and (COUNTER - page * CHUNK_SIZE) <= CHUNK_SIZE:
             backward = f"page_{page - 1}"
             button = event.client.build_reply_markup(
@@ -872,9 +827,8 @@ async def show(event):
                 text = create_message_select_query(res)
                 converter(text, tmpdirname)
                 await client.send_file(
-                    SENDER,
-                    f'{tmpdirname}/out.jpg',
-                    buttons=button)
+                    SENDER, f"{tmpdirname}/out.jpg", buttons=button
+                )
         else:
             forward = f"page_{page + 1}"
             button = event.client.build_reply_markup(
@@ -886,9 +840,8 @@ async def show(event):
                 text = create_message_select_query(res)
                 converter(text, tmpdirname)
                 await client.send_file(
-                    SENDER,
-                    f'{tmpdirname}/out.jpg',
-                    buttons=button)
+                    SENDER, f"{tmpdirname}/out.jpg", buttons=button
+                )
 
     except Exception as e:
         logger.error(
@@ -919,9 +872,7 @@ if __name__ == "__main__":
         handler.setFormatter(formatter)
 
         if not check_tokens():
-            logger.critical("Bot stopped due missing some token",
-                            exc_info=1
-                            )
+            logger.critical("Bot stopped due missing some token", exc_info=1)
             sys.exit(2)
 
         # Connect to the database
@@ -956,5 +907,5 @@ if __name__ == "__main__":
         client.run_until_disconnected()
 
     except Exception as error:
-        client.send_message('me', "Bot isn't working!!")
+        client.send_message("me", "Bot isn't working!!")
         logger.fatal("Bot isn't working due to a %s", error, exc_info=1)
