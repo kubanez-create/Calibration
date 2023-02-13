@@ -889,7 +889,7 @@ async def display(event):
 
 # LIST METHOD FOR A WHOLE LIST OF PREDICTIONS
 @client.on(events.CallbackQuery(data=re.compile(b'list_whole')))
-async def display(event):
+async def display_whole(event):
     """Show predictions to a user.
 
     Args:
@@ -991,7 +991,7 @@ async def show(event):
 
 # LIST METHOD FOR A LIST OF PREDICTIONS W/O OUTCOMES
 @client.on(events.CallbackQuery(data=re.compile(b'list_empty')))
-async def display(event):
+async def display_empty(event):
     """Show predictions to a user.
 
     Args:
@@ -1041,7 +1041,7 @@ async def display(event):
 
 
 @client.on(events.CallbackQuery(data=re.compile(b"page_empty")))
-async def show(event):
+async def show_empty(event):
     """Show to a user their predictions.
 
     Activated only if user has more then 10 predictions, using
