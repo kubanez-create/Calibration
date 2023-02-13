@@ -1,6 +1,8 @@
 """Helper functions for the bot."""
 from __future__ import annotations
 
+import re
+
 from itertools import chain
 
 SMILES_NUMBER: int = 60
@@ -83,3 +85,17 @@ def one_message(ans: dict[str, str]):
         f" 90% будет находиться предсказанное значение: {ans['hi_90']}\n"
     )
     return message
+
+
+def check_click(load: str) -> bool:
+    commands = [
+        "Добавить предсказание",
+        "Обновить предсказание",
+        "Удалить предсказание",
+        "Результат предсказания",
+        "Проверить калибровку"
+    ]
+    for comm in commands:
+        if re.match(comm, load):
+            return False
+    return True
