@@ -40,16 +40,22 @@ def validate_updating(ans):
     )
 
 
+def validate_checking(string: str):
+    commands = [
+        "/start",
+        "Показать предсказания",
+        "Мои категории",
+        "Как пользоваться"
+    ]
+    for comm in commands:
+        if re.match(comm, string):
+            return False
+    return True
+
+
 def validate_calibration(ans):
-    """Validate user provided category string.
-
-    Args:
-        ans (str): user's category string
-
-    Returns:
-        bool: whether given category string mathes the pattern or not
-    """
-    return re.fullmatch(r"^[a-яА-ЯЁё\w]{1,50}$", ans)
+    """This function here entirely for the backward compatibility."""
+    return True
 
 
 def validate_deletion(ans):

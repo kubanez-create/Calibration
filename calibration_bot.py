@@ -170,10 +170,11 @@ async def add_prediction(event):
                 "For example type in:\n"
                 " How long does it going to take?; work; hours; 2; 8;"
                 " 1; 16\n"
-                "Please use '; ' to separate field values."
+                "Please use '; ' to separate field values and '.' to"
+                " separate decimal part in numbers."
             )
             await conv.send_message(text, parse_mode="md")
-            response = await conv.get_response(timeout=300)
+            response = await conv.get_response(timeout=600)
             if not validate_creating(response.text):
                 await conv.send_message(
                     (
@@ -184,7 +185,9 @@ async def add_prediction(event):
                         " category of your prediction, another word for a"
                         " nessesary unit of measure, 4 numbers which stand for"
                         " your upper and lower predicted bounds and all"
-                        " of those are divided by semicolon and whitespace"
+                        " of those are divided by semicolon and whitespace."
+                        " Also chech that a decimal part of numbers separated"
+                        " by a dot (.) not a colon (,)."
                     )
                 )
                 logger.info("Prediction isn't valid")
@@ -237,8 +240,8 @@ async def add_prediction(event):
                     logger.debug("Someone just added a prediction!")
                 global COUNTER
                 COUNTER += 1
-            await conv.cancel_all()
-            return
+        await conv.cancel_all()
+        return
 
     except Exception as e:
         logger.error(
@@ -452,7 +455,7 @@ async def update(event):
                 "For example: 1; 3; 5; 1; 8"
             )
             await conv.send_message(text)
-            response = await conv.get_response(timeout=300)
+            response = await conv.get_response(timeout=600)
             if not validate_updating(response.text):
                 await conv.send_message(
                     (
@@ -507,6 +510,8 @@ async def update(event):
                     text = f"Prediction with id {pred_id} correctly updated"
                     await client.send_message(SENDER, text, parse_mode="html")
                     logger.debug(text)
+        await conv.cancel_all()
+        return
 
     except Exception as e:
         logger.error(
@@ -537,7 +542,7 @@ async def enter(event):
                 " For example: 1; 7"
             )
             await conv.send_message(text)
-            response = await conv.get_response(timeout=300)
+            response = await conv.get_response(timeout=600)
             if not validate_outcome(response.text):
                 await conv.send_message(
                     (
@@ -580,6 +585,8 @@ async def enter(event):
                     )
                     await client.send_message(SENDER, text, parse_mode="html")
                     logger.debug(text)
+        await conv.cancel_all()
+        return
 
     except Exception as e:
         logger.error(
@@ -615,7 +622,7 @@ async def check(event):
                 " as one word without any punctuation."
             )
             await conv.send_message(text)
-            response = await conv.get_response(timeout=300)
+            response = await conv.get_response(timeout=600)
             ans: str = response.text
             if not validate_calibration(response.text):
                 await conv.send_message(
@@ -713,6 +720,8 @@ async def check(event):
                     )
                 await client.send_message(SENDER, text, parse_mode="html")
                 logger.debug(f" Check function returned following: {text}")
+        await conv.cancel_all()
+        return
 
     except Exception as e:
         logger.error(
@@ -739,7 +748,7 @@ async def delete(event):
         ) as conv:
             text = "Enter an id for a prediction you are going to delete"
             await conv.send_message(text)
-            response = await conv.get_response(timeout=300)
+            response = await conv.get_response(timeout=600)
             idn = response.text
             if not validate_deletion(response.text):
                 await conv.send_message(
@@ -772,6 +781,8 @@ async def delete(event):
                     logger.debug(text)
                 global COUNTER
                 COUNTER -= 1
+        await conv.cancel_all()
+        return
 
     except Exception as e:
         logger.error(
@@ -839,4 +850,5 @@ if __name__ == "__main__":
         client.run_until_disconnected()
 
     except Exception as error:
+        client.send_message('me', "Bot isn't working!!")
         logger.fatal("Bot isn't working due to a %s", error, exc_info=1)
