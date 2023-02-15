@@ -302,7 +302,7 @@ async def CUEDhandler(event):
             cat_list = [
                 a for a in chain.from_iterable(res)
             ] + ["общая", "Общая"]
-            if mes not in cat_list:
+            if mes.lower() not in cat_list:
                 await client.send_message(
                     who,
                     ("Вы не создали ни одного предсказания в данной"
@@ -372,7 +372,7 @@ async def CUEDhandler(event):
                         " GROUP BY user_id"
                         ") AS outer_table;"
                     )
-                    crsr.execute(query, (who, mes))
+                    crsr.execute(query, (who, mes.lower()))
                     res = crsr.fetchall()  # fetch all the results
                     if not res:
                         text = (
@@ -805,7 +805,7 @@ async def add(event):
         user_id = SENDER
         date = datetime.now().strftime("%d/%m/%Y")
         task_description = TEXT["prediction"]
-        task_category = TEXT["category"]
+        task_category = TEXT["category"].lower()
         unit_of_measure = TEXT["unit"]
         pred_low_50_conf = TEXT["low_50"]
         pred_high_50_conf = TEXT["hi_50"]
