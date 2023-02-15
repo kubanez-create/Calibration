@@ -151,4 +151,6 @@ posts/static/
 media/
 
 .trunk
+*.sql
+sessions
 .env
