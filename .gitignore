@@ -153,3 +153,4 @@ media/
 .trunk
 *.sql
 sessions
+.env
