@@ -1,11 +1,15 @@
 """Helper functions for the bot."""
 from __future__ import annotations
+from typing import Union
 
 import re
 
 from itertools import chain
 
 SMILES_NUMBER: int = 60
+SMALL_DIAMOND = "\U0001F538"
+PENCIL = "\U0000270F"
+BLACK_SQUARE = "\U000025AA"
 
 
 def create_message_categories(ans: list[str]):
@@ -31,9 +35,6 @@ def create_message_select_query(ans):
     Returns:
         str: message ready to be sent to a user
     """
-    SMALL_DIAMOND = "\U0001F538"
-    PENCIL = "\U0000270F"
-    BLACK_SQUARE = "\U000025AA"
     text = ""
     for n, i in enumerate(ans):
         id = i[0]
@@ -50,8 +51,8 @@ def create_message_select_query(ans):
         text += (
             f"<b>№: {str(id)}</b>\n"
             f"<b>{date}</b>\n\n{PENCIL}"
-            f" {task_description}\n\n<b>Категория:</b>"
-            f" {task_category}\n<b>Единица измерения:</b> {unit_of_measure}\n\n"
+            f" {task_description}\n\n<b>Категория:</b> {task_category}\n"
+            f"<b>Единица измерения:</b> {unit_of_measure}\n\n"
             "<b>ГРАНИЦЫ</b>\n"
             f"{SMALL_DIAMOND} <b>Нижняя 50%:</b> {pred_low_50_conf}\n"
             f"{SMALL_DIAMOND} <b>Верхняя 50%:</b> {pred_high_50_conf}\n"
@@ -70,24 +71,29 @@ def one_message(ans: dict[str, str]):
     Args:
         ans (dict[str, str]): dictionary with inputed values
     """
-    SMILE = "\U0001F535"
     message = (
-        f"{SMILE}<b>Текст предсказания:</b> {ans['prediction']}\n"
-        f"{SMILE}<b>Категория предсказания:</b> {ans['category']}\n"
-        f"{SMILE}<b>Единица измерения:</b> {ans['unit']}\n"
-        f"{SMILE}<b>Нижняя граница диапазона</b>, в котором с уверенностью в"
-        f" 50% будет находиться предсказанное значение: {ans['low_50']}\n"
-        f"{SMILE}<b>Верхняя граница диапазона</b>, в котором с уверенностью в"
-        f" 50% будет находиться предсказанное значение:{ans['hi_50']}\n"
-        f"{SMILE}<b>Нижняя граница диапазона</b>, в котором с уверенностью в"
-        f" 90% будет находиться предсказанное значение: {ans['low_90']}\n"
-        f"{SMILE}<b>Верхняя граница диапазона</b>, в котором с уверенностью в"
-        f" 90% будет находиться предсказанное значение: {ans['hi_90']}\n"
+        f"{PENCIL} {ans['prediction']}\n\n"
+        f"<b>Категория:</b> {ans['category']}\n"
+        f"<b>Единица измерения:</b> {ans['unit']}\n\n"
+        "<b>ГРАНИЦЫ</b>\n"
+        f"{SMALL_DIAMOND} <b>Нижняя 50%:</b> {ans['low_50']}\n"
+        f"{SMALL_DIAMOND} <b>Верхняя 50%:</b> {ans['hi_50']}\n"
+        f"{SMALL_DIAMOND} <b>Нижняя 90%:</b> {ans['low_90']}\n"
+        f"{SMALL_DIAMOND} <b>Верхняя 90%:</b> {ans['hi_90']}"
     )
     return message
 
 
 def check_click(load: str) -> bool:
+    """Check user's input isn't any of the buttons.
+
+    Args:
+        load (str): message we have got
+
+    Returns:
+        bool: True if its a regular message and False if
+        it's one of the bot buttons
+    """
     commands = [
         "Добавить предсказание",
         "Обновить предсказание",
@@ -99,3 +105,33 @@ def check_click(load: str) -> bool:
         if re.match(comm, load):
             return False
     return True
+
+
+async def err_message(
+    client,
+    who: Union[str, int],
+    parse_mode: str = "md",
+    state_dict: dict[str, str] = None,
+    mess: str = (
+        "Складывается впечатление, что вы еще не внесли ни одного"
+        " предсказания. Попробуйте."
+    ),
+    del_state: bool = True,
+):
+    """Send an error message to a user.
+
+    Args:
+        client (telethon.client): telethon.client object
+        who (Union[str, int]): a user's entity whom we should send the message
+        state_dict (dict[str, str]): dictionary with users' states.
+        Defaults to None
+        mess (str, optional): what message to send. Defaults to
+        ("Складывается впечатление,
+        что вы еще не внесли ни одного" " предсказания. Попробуйте." ).
+        del_state (bool, optional): whether we need to delete user's state.
+        Defaults to True.
+        parse_mode (str): message parse mode (html or markdown)
+    """
+    await client.send_message(who, mess, parse_mode=parse_mode)
+    if del_state:
+        del state_dict[who]
