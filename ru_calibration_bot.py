@@ -21,7 +21,8 @@ from alternative_helper import (
     one_message,
     create_message_select_query,
     create_message_categories,
-    check_click
+    check_click,
+    err_message
 )
 from validators import (
     validate_checking,
@@ -53,6 +54,8 @@ client = TelegramClient(
 
 
 class State(Enum):
+    """User' states."""
+
     WAIT_CHECK = auto()
     WAIT_UPDATE = auto()
     WAIT_ENTER = auto()
@@ -195,11 +198,7 @@ async def display_categories(event):
             await client.send_message(SENDER, text, parse_mode="html")
         # Otherwhise, print a default text
         else:
-            text = (
-                "Складывается впечатление, что вы еще не внесли ни одного"
-                " предсказания. Попробуйте."
-            )
-            await client.send_message(SENDER, text, parse_mode="html")
+            err_message(client, parse_mode='html', del_state=False)
             logger.debug(
                 "Someone tried to have a look at their categories"
                 " without any made predictions."
@@ -216,6 +215,16 @@ async def display_categories(event):
 # Detail view block: update, delete, list, enter outcome methods
 @client.on(events.NewMessage(pattern=validate_checking))
 async def CUEDhandler(event):
+    """Handle update, delete, list, create and enter outcome methods.
+
+    We check what message we've got and change a user's state.
+    If the message isn't trigger state's change and a user alreade
+    has a state we process given message in a subsequent method
+    below.
+
+    Args:
+        event (EventCommon): NewMessage event
+    """
     sender = await event.get_sender()
     who = sender.id
     mes = event.message.raw_text
@@ -267,11 +276,6 @@ async def CUEDhandler(event):
         return
 
     if re.match("Добавить", mes):
-        """Add new prediction.
-
-        Args:
-            event (EventCommon): NewMessage event
-        """
         conversation_state[who] = State.WAIT_ADD_PREDICTION
         await client.send_message(
             who,
@@ -292,23 +296,19 @@ async def CUEDhandler(event):
         res = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
         if not res:
-            text = ("Кажется, Вы еще не сохраняли предсказаний."
-                    " Попробуйте."
-                    )
-            del conversation_state[who]
-            await client.send_message(who, text, parse_mode="html")
+            err_message(client, who, parse_mode="html",
+                        state_dict=conversation_state)
             return
         else:
             cat_list = [
                 a for a in chain.from_iterable(res)
             ] + ["общая", "Общая"]
             if mes.lower() not in cat_list:
-                await client.send_message(
-                    who,
-                    ("Вы не создали ни одного предсказания в данной"
-                        " категории.")
-                )
-                del conversation_state[who]
+                err_message(client, who, state_dict=conversation_state,
+                            mess=(
+                                "Вы не создали ни одного предсказания в данной"
+                                " категории."
+                            ))
                 logger.info(
                     "Someone tried to get a list of categories"
                     " but have not made any themselves."
@@ -316,7 +316,6 @@ async def CUEDhandler(event):
                 return
 
             else:
-                # Execute the query and get all (*) predictions
                 if mes.lower() == "общая":
                     query = """SELECT tot_acc_50 / tot_num_pred AS
                             calibration_50,
@@ -402,29 +401,25 @@ async def CUEDhandler(event):
         user_predictions = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
         if not user_predictions:
-            text = (
-                "Кажется, Вы еще не сохраняли предсказаний."
-                " Попробуйте.")
-            del conversation_state[who]
-            await client.send_message(who, text, parse_mode="html")
+            err_message(client, who, state_dict=conversation_state)
             logger.info(
                 "Someone tried to update a prediction without"
                 "making at least one themselve"
             )
             return
         if not validate_updating(mes):
-            await client.send_message(
+            err_message(
+                client,
                 who,
-                (
+                parse_mode="html",
+                mess=(
                     "К сожалению, отправленное вами сообщение не похоже на"
                     " 5 цифр, разделенных точкой с запятой и пробелом.\n\n"
                     "Проверьте ваше сообщение, нажмите еще раз на кнопку"
                     " <i>Обновить предсказание</i> и отправьте сообщение с"
                     " обновленными цифрами еще раз."
                 ),
-                parse_mode="html"
-            )
-            del conversation_state[who]
+                state_dict=conversation_state)
             logger.info("Update message isn't valid")
             return
         else:
@@ -437,15 +432,15 @@ async def CUEDhandler(event):
             low_90 = message[3]
             hi_90 = message[4]
             if index not in mes_list:
-                await client.send_message(
+                err_message(
+                    client,
                     who,
-                    (
+                    mess=(
                         "Номер предсказания не совпадает ни с одним из"
                         " сделанных Вами предсказаний. Пожалуйста"
                         " внесите корректный номер."
                     ),
-                )
-                del conversation_state[who]
+                    state_dict=conversation_state)
                 logger.info(
                     "Someone tried to update a someone else's prediction."
                 )
@@ -478,11 +473,7 @@ async def CUEDhandler(event):
         user_predictions = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
         if not user_predictions:
-            text = (
-                "Кажется, Вы еще не сохраняли предсказаний."
-                " Попробуйте.")
-            del conversation_state[who]
-            await client.send_message(who, text, parse_mode="html")
+            err_message(client, who, state_dict=conversation_state)
             logger.info(
                 "Someone tried to enter an outcome of a prediction"
                 " without making at least one themselve"
@@ -490,19 +481,19 @@ async def CUEDhandler(event):
             return
 
         if not validate_outcome(mes):
-            await client.send_message(
+            err_message(
+                client,
                 who,
-                (
+                mess=(
                     "К сожалению Ваше сообщение не похоже на две цифры,"
                     " разделенные точкой с запятой и пробелом. Пожалуйста"
                     " повторно нажмите на кнопку <i>Результат предсказания"
                     "</i>, исправьте текст сообщения и отправьте его"
                     " еще раз."
                 ),
-                parse_mode="html"
-            )
+                state_dict=conversation_state,
+                parse_mode="html")
             logger.info("Outcome message isn't valid")
-            del conversation_state[who]
             return
 
         else:
@@ -513,15 +504,15 @@ async def CUEDhandler(event):
             actual_outcome = list_of_words[1]
 
             if pred_id not in mes_list:
-                await client.send_message(
+                err_message(
+                    client,
                     who,
-                    (
+                    mess=(
                         "Номер предсказания не совпадает ни с одним из"
                         " сделанных Вами предсказаний. Пожалуйста"
                         " внесите корректный номер."
                     ),
-                )
-                del conversation_state[who]
+                    state_dict=conversation_state)
                 logger.info(
                     ("Someone tried to enter outcome for a someone else's"
                         " prediction.")
@@ -558,11 +549,7 @@ async def CUEDhandler(event):
         user_predictions = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
         if not user_predictions:
-            text = (
-                "Кажется, Вы еще не сохраняли предсказаний."
-                " Попробуйте."
-            )
-            del conversation_state[who]
+            err_message(client, who)
             await client.send_message(who, text, parse_mode="html")
             logger.info(
                 "Someone tried to delete a prediction"
@@ -571,17 +558,17 @@ async def CUEDhandler(event):
             return
 
         if not validate_deletion(mes):
-            await client.send_message(
+            err_message(
+                client,
                 who,
-                (
+                mess=(
                     "К сожалению, Ваше сообщение не похоже на цифру."
                     " Что именно Вы пытаетесь отправить? Попробуйте"
                     " отправить номер предсказания, которое вы"
                     " пытаетесь удалить еще раз, пожалуйста."
-                )
-            )
+                ),
+                state_dict=conversation_state)
             logger.info("Outcome message isn't valid")
-            del conversation_state[who]
             return
 
         else:
@@ -589,15 +576,15 @@ async def CUEDhandler(event):
                 str(x) for x in chain.from_iterable(user_predictions)]
             pred_id = mes_list[0]
             if pred_id not in mes_list:
-                await client.send_message(
+                err_message(
+                    client,
                     who,
-                    (
+                    mess=(
                         "Номер предсказания не совпадает ни с одним из"
                         " сделанных Вами предсказаний. Пожалуйста"
                         " внесите корректный номер."
                     ),
-                )
-                del conversation_state[who]
+                    state_dict=conversation_state)
                 logger.info(
                     "Someone tried to deleto a someone else's prediction."
                 )
@@ -627,6 +614,12 @@ async def CUEDhandler(event):
             TEXT["prediction"] = mes
             BLACK_HEART = "\U0001F5A4"
             SMILE_INFO: str = "\U00002139"
+            DEFAULT_ERROR_MESSAGE: str = (
+                "Прошу простить мне мое занудство, но нажимать"
+                " на случайные кнопки в середине разговора не лучший"
+                " метод улучшить собственную калибровку."
+                "Нажмите на любую кнопку сейчас и продолжите."
+            )
             conversation_state[who] = State.WAIT_ADD_CATEGORY
             await client.send_message(
                 who,
@@ -646,13 +639,7 @@ async def CUEDhandler(event):
             )
             return
         else:
-            del conversation_state[who]
-            await client.send_message(
-                who,
-                "Прошу простить мне мое занудство, но нажимать"
-                " на случайные кнопки в середине разговора не лучший"
-                " метод улучшить собственную калибровку."
-                "Нажмите на любую кнопку сейчас и продолжите.")
+            err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
             return
     elif conversation_state.get(who) == State.WAIT_ADD_CATEGORY:
         if check_click(mes):
@@ -670,13 +657,7 @@ async def CUEDhandler(event):
             )
             return
         else:
-            del conversation_state[who]
-            await client.send_message(
-                who,
-                "Прошу простить мне мое занудство, но нажимать"
-                " на случайные кнопки в середине разговора не лучший"
-                " метод улучшить собственную калибровку."
-                "Нажмите на любую кнопку сейчас и продолжите.")
+            err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
             return
     elif conversation_state.get(who) == State.WAIT_ADD_UNIT:
         if check_click(mes):
@@ -692,13 +673,7 @@ async def CUEDhandler(event):
             )
             return
         else:
-            del conversation_state[who]
-            await client.send_message(
-                who,
-                "Прошу простить мне мое занудство, но нажимать"
-                " на случайные кнопки в середине разговора не лучший"
-                " метод улучшить собственную калибровку."
-                "Нажмите на любую кнопку сейчас и продолжите.")
+            err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
             return
     elif conversation_state.get(who) == State.WAIT_ADD_LOW_50:
         if check_click(mes):
@@ -714,13 +689,7 @@ async def CUEDhandler(event):
             )
             return
         else:
-            del conversation_state[who]
-            await client.send_message(
-                who,
-                "Прошу простить мне мое занудство, но нажимать"
-                " на случайные кнопки в середине разговора не лучший"
-                " метод улучшить собственную калибровку."
-                "Нажмите на любую кнопку сейчас и продолжите.")
+            err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
             return
     elif conversation_state.get(who) == State.WAIT_ADD_HI_50:
         if check_click(mes):
@@ -736,13 +705,7 @@ async def CUEDhandler(event):
             )
             return
         else:
-            del conversation_state[who]
-            await client.send_message(
-                who,
-                "Прошу простить мне мое занудство, но нажимать"
-                " на случайные кнопки в середине разговора не лучший"
-                " метод улучшить собственную калибровку."
-                "Нажмите на любую кнопку сейчас и продолжите.")
+            err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
             return
     elif conversation_state.get(who) == State.WAIT_ADD_LOW_90:
         if check_click(mes):
@@ -758,13 +721,7 @@ async def CUEDhandler(event):
             )
             return
         else:
-            del conversation_state[who]
-            await client.send_message(
-                who,
-                "Прошу простить мне мое занудство, но нажимать"
-                " на случайные кнопки в середине разговора не лучший"
-                " метод улучшить собственную калибровку."
-                "Нажмите на любую кнопку сейчас и продолжите.")
+            err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
             return
     elif conversation_state.get(who) == State.WAIT_ADD_HI_90:
         if check_click(mes):
@@ -786,18 +743,17 @@ async def CUEDhandler(event):
             )
             return
         else:
-            del conversation_state[who]
-            await client.send_message(
-                who,
-                "Прошу простить мне мое занудство, но нажимать"
-                " на случайные кнопки в середине разговора не лучший"
-                " метод улучшить собственную калибровку."
-                "Нажмите на любую кнопку сейчас и продолжите.")
+            err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
             return
 
 
 @client.on(events.CallbackQuery(data=re.compile(r"Добавить сохранить")))
 async def add(event):
+    """Save user's prediction.
+
+    Args:
+        event (EventCommon): NewMessage event
+    """
     try:
         global TEXT
         sender = await event.get_sender()
@@ -870,6 +826,15 @@ async def show_again(event):
 # LIST METHOD
 @client.on(events.NewMessage(pattern="Показать"))
 async def display(event):
+    """Give a choice to a user about what they's like to see.
+
+    Their choices are:
+    - whole list with and without known results;
+    - partial list containing only prediction w/o results.
+
+    Args:
+        event (EventCommon): NewMessage event
+    """
     text = (
         "Выберите пожалуйста - хотели ли бы Вы увидеть все"
         " сохраненные предсказания или же исключительно те,"
@@ -890,7 +855,7 @@ async def display(event):
 # LIST METHOD FOR A WHOLE LIST OF PREDICTIONS
 @client.on(events.CallbackQuery(data=re.compile(b'list_whole')))
 async def display_whole(event):
-    """Show predictions to a user.
+    """Show all predictions to a user.
 
     Args:
         event (EventCommon): NewMessage event
@@ -921,11 +886,7 @@ async def display_whole(event):
 
         # Otherwhise, print a default text
         else:
-            text = (
-                "You have made no predictions so far. Give it a try!"
-                " It is for free."
-            )
-            await client.send_message(SENDER, text, parse_mode="html")
+            err_message(client, SENDER, del_state=False)
 
     except Exception as e:
         logger.error(
@@ -992,7 +953,7 @@ async def show(event):
 # LIST METHOD FOR A LIST OF PREDICTIONS W/O OUTCOMES
 @client.on(events.CallbackQuery(data=re.compile(b'list_empty')))
 async def display_empty(event):
-    """Show predictions to a user.
+    """Show predictions whithout outcomes to a user.
 
     Args:
         event (EventCommon): NewMessage event
@@ -1026,11 +987,7 @@ async def display_empty(event):
 
         # Otherwhise, print a default text
         else:
-            text = (
-                "You have made no predictions so far. Give it a try!"
-                " It is for free."
-            )
-            await client.send_message(SENDER, text, parse_mode="html")
+            err_message(client, SENDER, del_state=False)
 
     except Exception as e:
         logger.error(
@@ -1042,7 +999,7 @@ async def display_empty(event):
 
 @client.on(events.CallbackQuery(data=re.compile(b"page_empty")))
 async def show_empty(event):
-    """Show to a user their predictions.
+    """Show to a user their predictions w/o outcomes.
 
     Activated only if user has more then 10 predictions, using
     ad-hoc pagination.
@@ -1106,12 +1063,10 @@ if __name__ == "__main__":
             "main.log", maxBytes=50000000, backupCount=5
         )
         logger.addHandler(handler)
-        # Создаем форматер
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
 
-        # Применяем его к хэндлеру
         handler.setFormatter(formatter)
 
         if not check_tokens():
