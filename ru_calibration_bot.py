@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 # pip install telethon
 from telethon import Button, TelegramClient, events
 
-from alternative_helper import (
+from helpers import (
     one_message,
     create_message_select_query,
     create_message_categories,
