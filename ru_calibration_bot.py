@@ -28,7 +28,7 @@ from validators import (
     validate_checking,
     validate_outcome,
     validate_updating,
-    validate_deletion
+    validate_deletion,
 )
 
 load_dotenv()
@@ -48,9 +48,8 @@ COUNTER: int = None
 TEXT: dict = {}
 
 # Start the Client (telethon)
-client = TelegramClient(
-    SESSION_NAME, API_ID, API_HASH
-).start(bot_token=TELEGRAM_TOKEN)
+client = TelegramClient(SESSION_NAME, API_ID, API_HASH).start(
+    bot_token=TELEGRAM_TOKEN)
 
 
 class State(Enum):
@@ -101,10 +100,7 @@ async def start(event):
                 Button.text("Результат предсказания"),
                 Button.text("Проверить калибровку"),
             ],
-            [
-                Button.text("Мои категории"),
-                Button.text("Как пользоваться")
-            ],
+            [Button.text("Мои категории"), Button.text("Как пользоваться")],
         ]
     )
 
@@ -162,13 +158,12 @@ async def guide(event):
             " отстой он создал (даже в змейку не поиграешь) - отправьте мне"
             " письмо по адресу kubanez74@gmail.com."
         )
-        await event.respond(text, parse_mode='html')
+        await event.respond(text, parse_mode="html")
 
     except Exception as e:
         logger.error(
             ("Something went wrong when showing help page"
-             f" with an error: {e}"
-             )
+             f" with an error: {e}")
         )
         return
 
@@ -597,12 +592,10 @@ async def CUEDhandler(event):
                 crsr.execute(sql_command, [pred_id])
                 conn.commit()
                 await client.send_message(
-                    who,
-                    (f"Предсказание с номером {pred_id} успешно удалено.")
+                    who, (f"Предсказание с номером {pred_id} успешно удалено.")
                 )
                 logger.info(
-                    f"Prediction with id {pred_id} successfully deleted"
-                )
+                    f"Prediction with id {pred_id} successfully deleted")
                 del conversation_state[who]
                 return
 
@@ -874,7 +867,7 @@ async def display_whole(event):
             message = res[0:CHUNK_SIZE]
             if len(res) <= CHUNK_SIZE:
                 text = create_message_select_query(message)
-                await client.send_message(SENDER, text, parse_mode='html')
+                await client.send_message(SENDER, text, parse_mode="html")
             else:
                 callback_data = f"page_whole_{1}"
                 button = event.client.build_reply_markup(
@@ -882,7 +875,8 @@ async def display_whole(event):
                 )
                 text = create_message_select_query(message)
                 await client.send_message(
-                    SENDER, text, buttons=button, parse_mode='html')
+                    SENDER, text, buttons=button, parse_mode="html"
+                )
 
         # Otherwhise, print a default text
         else:
