@@ -17,12 +17,12 @@ from dotenv import load_dotenv
 # pip install telethon
 from telethon import Button, TelegramClient, events
 
-from alternative_helper import (
+from helpers import (
     one_message,
     create_message_select_query,
     create_message_categories,
     check_click,
-    err_message,
+    err_message
 )
 from validators import (
     validate_checking,
@@ -48,7 +48,8 @@ COUNTER: int = None
 TEXT: dict = {}
 
 # Start the Client (telethon)
-client = TelegramClient(SESSION_NAME, API_ID, API_HASH).start(bot_token=TELEGRAM_TOKEN)
+client = TelegramClient(SESSION_NAME, API_ID, API_HASH).start(
+    bot_token=TELEGRAM_TOKEN)
 
 
 class State(Enum):
@@ -92,7 +93,9 @@ async def start(event):
                 Button.text("Добавить предсказание", resize=True),
                 Button.text("Показать предсказания"),
             ],
-            [Button.text("Обновить предсказание"), Button.text("Удалить предсказание")],
+            [
+                Button.text("Обновить предсказание"),
+                Button.text("Удалить предсказание")],
             [
                 Button.text("Результат предсказания"),
                 Button.text("Проверить калибровку"),
@@ -159,7 +162,8 @@ async def guide(event):
 
     except Exception as e:
         logger.error(
-            ("Something went wrong when showing help page" f" with an error: {e}")
+            ("Something went wrong when showing help page"
+             f" with an error: {e}")
         )
         return
 
@@ -189,7 +193,7 @@ async def display_categories(event):
             await client.send_message(SENDER, text, parse_mode="html")
         # Otherwhise, print a default text
         else:
-            err_message(client, parse_mode="html", del_state=False)
+            err_message(client, parse_mode='html', del_state=False)
             logger.debug(
                 "Someone tried to have a look at their categories"
                 " without any made predictions."
@@ -287,19 +291,19 @@ async def CUEDhandler(event):
         res = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
         if not res:
-            err_message(client, who, parse_mode="html", state_dict=conversation_state)
+            err_message(client, who, parse_mode="html",
+                        state_dict=conversation_state)
             return
         else:
-            cat_list = [a for a in chain.from_iterable(res)] + ["общая", "Общая"]
+            cat_list = [
+                a for a in chain.from_iterable(res)
+            ] + ["общая", "Общая"]
             if mes.lower() not in cat_list:
-                err_message(
-                    client,
-                    who,
-                    state_dict=conversation_state,
-                    mess=(
-                        "Вы не создали ни одного предсказания в данной" " категории."
-                    ),
-                )
+                err_message(client, who, state_dict=conversation_state,
+                            mess=(
+                                "Вы не создали ни одного предсказания в данной"
+                                " категории."
+                            ))
                 logger.info(
                     "Someone tried to get a list of categories"
                     " but have not made any themselves."
@@ -368,8 +372,7 @@ async def CUEDhandler(event):
                         text = (
                             "В данной категории у Вас нет ни одного"
                             " предсказания с известным исходом."
-                            " Расчет калибровки пока не возможен."
-                        )
+                            " Расчет калибровки пока не возможен.")
                     else:
                         text = (
                             "Ваша калибровка для выбранной категории"
@@ -385,7 +388,10 @@ async def CUEDhandler(event):
 
     # UPDATE METHOD
     if conversation_state.get(who) == State.WAIT_UPDATE:
-        query = "SELECT id FROM" " predictions.raw_predictions WHERE user_id = %s"
+        query = (
+            "SELECT id FROM"
+            " predictions.raw_predictions WHERE user_id = %s"
+        )
         crsr.execute(query, [who])
         user_predictions = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
@@ -408,12 +414,12 @@ async def CUEDhandler(event):
                     " <i>Обновить предсказание</i> и отправьте сообщение с"
                     " обновленными цифрами еще раз."
                 ),
-                state_dict=conversation_state,
-            )
+                state_dict=conversation_state)
             logger.info("Update message isn't valid")
             return
         else:
-            mes_list = [str(x) for x in chain.from_iterable(user_predictions)]
+            mes_list = [
+                str(x) for x in chain.from_iterable(user_predictions)]
             message = mes.split("; ")
             index = message[0]
             low_50 = message[1]
@@ -429,9 +435,10 @@ async def CUEDhandler(event):
                         " сделанных Вами предсказаний. Пожалуйста"
                         " внесите корректный номер."
                     ),
-                    state_dict=conversation_state,
+                    state_dict=conversation_state)
+                logger.info(
+                    "Someone tried to update a someone else's prediction."
                 )
-                logger.info("Someone tried to update a someone else's prediction.")
                 return
             else:
                 params = (low_50, hi_50, low_90, hi_90, index)
@@ -443,15 +450,20 @@ async def CUEDhandler(event):
                 crsr.execute(sql_command, params)  # Execute the query
                 conn.commit()  # Commit the changes
                 await client.send_message(
-                    who, f"Предсказание с номером {index} успешно обновлено."
+                    who,
+                    f"Предсказание с номером {index} успешно обновлено."
                 )
-                logger.info(f"Prediction with id {index} successfully updated")
+                logger.info(
+                    f"Prediction with id {index} successfully updated")
                 del conversation_state[who]
                 return
 
     # ENTER OUTCOME
     if conversation_state.get(who) == State.WAIT_ENTER:
-        query = "SELECT id FROM" " predictions.raw_predictions WHERE user_id = %s"
+        query = (
+            "SELECT id FROM"
+            " predictions.raw_predictions WHERE user_id = %s"
+        )
         crsr.execute(query, [who])
         user_predictions = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
@@ -475,13 +487,13 @@ async def CUEDhandler(event):
                     " еще раз."
                 ),
                 state_dict=conversation_state,
-                parse_mode="html",
-            )
+                parse_mode="html")
             logger.info("Outcome message isn't valid")
             return
 
         else:
-            mes_list = [str(x) for x in chain.from_iterable(user_predictions)]
+            mes_list = [
+                str(x) for x in chain.from_iterable(user_predictions)]
             list_of_words = mes.split("; ")
             pred_id = list_of_words[0]
             actual_outcome = list_of_words[1]
@@ -495,13 +507,10 @@ async def CUEDhandler(event):
                         " сделанных Вами предсказаний. Пожалуйста"
                         " внесите корректный номер."
                     ),
-                    state_dict=conversation_state,
-                )
+                    state_dict=conversation_state)
                 logger.info(
-                    (
-                        "Someone tried to enter outcome for a someone else's"
-                        " prediction."
-                    )
+                    ("Someone tried to enter outcome for a someone else's"
+                        " prediction.")
                 )
                 return
             # Create the tuple "params" with all the parameters inserted
@@ -515,7 +524,8 @@ async def CUEDhandler(event):
                 conn.commit()  # Commit the changes
                 await client.send_message(
                     who,
-                    (f"Результат предсказание с номером {pred_id}" " успешно внесен."),
+                    (f"Результат предсказание с номером {pred_id}"
+                        " успешно внесен."),
                 )
                 logger.info(
                     f"Outcome of the prediction with id {pred_id}"
@@ -526,7 +536,10 @@ async def CUEDhandler(event):
 
     # DELETE METHOD
     elif conversation_state.get(who) == State.WAIT_DELETE:
-        query = "SELECT id FROM" " predictions.raw_predictions WHERE user_id = %s"
+        query = (
+            "SELECT id FROM"
+            " predictions.raw_predictions WHERE user_id = %s"
+        )
         crsr.execute(query, [who])
         user_predictions = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
@@ -549,13 +562,13 @@ async def CUEDhandler(event):
                     " отправить номер предсказания, которое вы"
                     " пытаетесь удалить еще раз, пожалуйста."
                 ),
-                state_dict=conversation_state,
-            )
+                state_dict=conversation_state)
             logger.info("Outcome message isn't valid")
             return
 
         else:
-            mes_list = [str(x) for x in chain.from_iterable(user_predictions)]
+            mes_list = [
+                str(x) for x in chain.from_iterable(user_predictions)]
             pred_id = mes_list[0]
             if pred_id not in mes_list:
                 err_message(
@@ -566,9 +579,10 @@ async def CUEDhandler(event):
                         " сделанных Вами предсказаний. Пожалуйста"
                         " внесите корректный номер."
                     ),
-                    state_dict=conversation_state,
+                    state_dict=conversation_state)
+                logger.info(
+                    "Someone tried to deleto a someone else's prediction."
                 )
-                logger.info("Someone tried to deleto a someone else's prediction.")
                 return
             else:
                 # Create the DELETE query passing the id as a parameter
@@ -580,7 +594,8 @@ async def CUEDhandler(event):
                 await client.send_message(
                     who, (f"Предсказание с номером {pred_id} успешно удалено.")
                 )
-                logger.info(f"Prediction with id {pred_id} successfully deleted")
+                logger.info(
+                    f"Prediction with id {pred_id} successfully deleted")
                 del conversation_state[who]
                 return
 
@@ -717,7 +732,7 @@ async def CUEDhandler(event):
                     Button.inline("Сохранить", data="Добавить сохранить"),
                     Button.inline("Внести повторно", data="Добавить повторно"),
                 ],
-                parse_mode="html",
+                parse_mode="html"
             )
             return
         else:
@@ -826,12 +841,12 @@ async def display(event):
         buttons=[
             Button.inline("Полный список", data="list_whole"),
             Button.inline("Предсказания без результата", data="list_empty"),
-        ],
+        ]
     )
 
 
 # LIST METHOD FOR A WHOLE LIST OF PREDICTIONS
-@client.on(events.CallbackQuery(data=re.compile(b"list_whole")))
+@client.on(events.CallbackQuery(data=re.compile(b'list_whole')))
 async def display_whole(event):
     """Show all predictions to a user.
 
@@ -915,7 +930,11 @@ async def show(event):
                 ]
             )
 
-        await client.send_message(SENDER, text, parse_mode="html", buttons=button)
+        await client.send_message(
+            SENDER,
+            text,
+            parse_mode='html',
+            buttons=button)
 
     except Exception as e:
         logger.error(
@@ -926,7 +945,7 @@ async def show(event):
 
 
 # LIST METHOD FOR A LIST OF PREDICTIONS W/O OUTCOMES
-@client.on(events.CallbackQuery(data=re.compile(b"list_empty")))
+@client.on(events.CallbackQuery(data=re.compile(b'list_empty')))
 async def display_empty(event):
     """Show predictions whithout outcomes to a user.
 
@@ -950,7 +969,7 @@ async def display_empty(event):
             message = res[0:CHUNK_SIZE]
             if len(res) <= CHUNK_SIZE:
                 text = create_message_select_query(message)
-                await client.send_message(SENDER, text, parse_mode="html")
+                await client.send_message(SENDER, text, parse_mode='html')
             else:
                 callback_data = f"page_empty_{1}"
                 button = event.client.build_reply_markup(
@@ -958,8 +977,7 @@ async def display_empty(event):
                 )
                 text = create_message_select_query(message)
                 await client.send_message(
-                    SENDER, text, buttons=button, parse_mode="html"
-                )
+                    SENDER, text, buttons=button, parse_mode='html')
 
         # Otherwhise, print a default text
         else:
@@ -1013,7 +1031,11 @@ async def show_empty(event):
                 ]
             )
 
-        await client.send_message(SENDER, text, parse_mode="html", buttons=button)
+        await client.send_message(
+            SENDER,
+            text,
+            parse_mode='html',
+            buttons=button)
 
     except Exception as e:
         logger.error(
@@ -1026,7 +1048,8 @@ async def show_empty(event):
 if __name__ == "__main__":
     try:
         logging.basicConfig(
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", filemode="w"
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            filemode="w"
         )
         logger: logging.Logger = logging.getLogger(__name__)
         logger.setLevel(logging.DEBUG)

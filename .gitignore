@@ -152,4 +152,7 @@ media/
 
 .trunk
 *.sql
-sessions
+sessions/
+.sessions
+.env
+*.css
