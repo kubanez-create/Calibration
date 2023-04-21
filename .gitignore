@@ -151,9 +151,5 @@ posts/static/
 media/
 
 .trunk
-<<<<<<< HEAD
 *.sql
 sessions
-=======
-.env
->>>>>>> af3d208 (Update .gitignore)
