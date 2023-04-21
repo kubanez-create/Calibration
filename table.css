@@ -1,0 +1,8 @@
+table, th, td {border: 1px solid black; padding: 10px;}
+tr th {background-color:#00FFFF;}
+table {
+    display: table; border-collapse: separate;
+    border-spacing: 2px; border-color: gray;
+}
+tr.even {background-color: #E0FFFF;}
+table.center {margin-left: auto; margin-right: auto;}
