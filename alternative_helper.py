@@ -21,9 +21,7 @@ def create_message_categories(ans: list[str]):
     Returns:
         str: message ready to be sent to a user
     """
-    return ('Ваши категории: '
-            f'{"; ".join(chain.from_iterable(ans))}'
-            )
+    return "Ваши категории: " f'{"; ".join(chain.from_iterable(ans))}'
 
 
 def create_message_select_query(ans):
@@ -99,7 +97,7 @@ def check_click(load: str) -> bool:
         "Обновить предсказание",
         "Удалить предсказание",
         "Результат предсказания",
-        "Проверить калибровку"
+        "Проверить калибровку",
     ]
     for comm in commands:
         if re.match(comm, load):

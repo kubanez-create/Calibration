@@ -41,12 +41,7 @@ def validate_updating(ans):
 
 
 def validate_checking(string: str):
-    commands = [
-        "/start",
-        "Показать предсказания",
-        "Мои категории",
-        "Как пользоваться"
-    ]
+    commands = ["/start", "Показать предсказания", "Мои категории", "Как пользоваться"]
     for comm in commands:
         if re.match(comm, string):
             return False

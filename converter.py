@@ -9,10 +9,9 @@ def converter(text: str, temp_location):
     Args:
         text (str): plain text for a table
         temp_location (path-like): temporary location storing an image
-        with user's predictions 
+        with user's predictions
 
     Returns:
         bool: whether or not transfomation was successful
     """
-    return imgkit.from_string(text, f'{temp_location}/out.jpg',
-                              css='table.css')
+    return imgkit.from_string(text, f"{temp_location}/out.jpg", css="table.css")

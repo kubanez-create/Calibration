@@ -12,6 +12,7 @@ from logging.handlers import RotatingFileHandler
 
 import mysql.connector
 from dotenv import load_dotenv
+
 # pip install telethon
 from telethon import Button, TelegramClient, events
 
@@ -41,9 +42,7 @@ CHUNK_SIZE: int = 10
 COUNTER: int = None
 
 # Start the Client (telethon)
-client = TelegramClient(
-    SESSION_NAME, API_ID, API_HASH
-).start(bot_token=TELEGRAM_TOKEN)
+client = TelegramClient(SESSION_NAME, API_ID, API_HASH).start(bot_token=TELEGRAM_TOKEN)
 
 
 def check_tokens() -> bool:
@@ -67,18 +66,9 @@ async def start(event):
                 Button.text("Make prediction", resize=True),
                 Button.text("Show predictions"),
             ],
-            [
-                Button.text("Update prediction"),
-                Button.text("Delete prediction")
-            ],
-            [
-                Button.text("Enter outcome"),
-                Button.text("Check calibration")
-            ],
-            [
-                Button.text("My categories"),
-                Button.text("Help")
-            ],
+            [Button.text("Update prediction"), Button.text("Delete prediction")],
+            [Button.text("Enter outcome"), Button.text("Check calibration")],
+            [Button.text("My categories"), Button.text("Help")],
         ]
     )
 
@@ -132,8 +122,7 @@ async def guide(event):
 
     except Exception as e:
         logger.error(
-            "Something went wrong when showing help page"
-            f" with an error: {e}"
+            "Something went wrong when showing help page" f" with an error: {e}"
         )
         return
 
@@ -149,9 +138,7 @@ async def add_prediction(event):
         sender = await event.get_sender()
         SENDER = sender.id
         # Start a conversation
-        async with client.conversation(
-            await event.get_chat(), exclusive=True
-        ) as conv:
+        async with client.conversation(await event.get_chat(), exclusive=True) as conv:
             text = (
                 "Enter your prediction in a form:\n"
                 "- **description** - what you predict specifically "
@@ -232,8 +219,9 @@ async def add_prediction(event):
                 if crsr.rowcount < 1:
                     text = "Something went wrong, please try again"
                     await client.send_message(SENDER, text, parse_mode="html")
-                    logger.info("Creation of a prediction was aborted"
-                                f" with the text: {text}")
+                    logger.info(
+                        "Creation of a prediction was aborted" f" with the text: {text}"
+                    )
                 else:
                     text = "Prediction correctly inserted"
                     await client.send_message(SENDER, text, parse_mode="html")
@@ -272,9 +260,7 @@ async def display(event):
                 with tempfile.TemporaryDirectory() as tmpdirname:
                     text = create_message_select_query(message)
                     converter(text, tmpdirname)
-                    await client.send_file(
-                        SENDER,
-                        f'{tmpdirname}/out.jpg')
+                    await client.send_file(SENDER, f"{tmpdirname}/out.jpg")
                 # send_message(SENDER, text, parse_mode="html")
             else:
                 callback_data = f"page_{1}"
@@ -285,17 +271,15 @@ async def display(event):
                     text = create_message_select_query(message)
                     converter(text, tmpdirname)
                     await client.send_file(
-                        SENDER,
-                        f'{tmpdirname}/out.jpg',
-                        buttons=button)
+                        SENDER, f"{tmpdirname}/out.jpg", buttons=button
+                    )
                 # send_message(
                 # SENDER, text, parse_mode="html", buttons=button
                 # )
         # Otherwhise, print a default text
         else:
             text = (
-                "You have made no predictions so far. Give it a try!"
-                " It is for free."
+                "You have made no predictions so far. Give it a try!" " It is for free."
             )
             await client.send_message(SENDER, text, parse_mode="html")
 
@@ -340,10 +324,7 @@ async def show(event):
             with tempfile.TemporaryDirectory() as tmpdirname:
                 text = create_message_select_query(res)
                 converter(text, tmpdirname)
-                await client.send_file(
-                    SENDER,
-                    f'{tmpdirname}/out.jpg',
-                    buttons=button)
+                await client.send_file(SENDER, f"{tmpdirname}/out.jpg", buttons=button)
             # await client.send_message(SENDER, text, parse_mode="html",
             #                           buttons=button)
         elif page >= 1 and (COUNTER - page * CHUNK_SIZE) <= CHUNK_SIZE:
@@ -356,10 +337,7 @@ async def show(event):
             with tempfile.TemporaryDirectory() as tmpdirname:
                 text = create_message_select_query(res)
                 converter(text, tmpdirname)
-                await client.send_file(
-                    SENDER,
-                    f'{tmpdirname}/out.jpg',
-                    buttons=button)
+                await client.send_file(SENDER, f"{tmpdirname}/out.jpg", buttons=button)
             # await client.send_message(SENDER, text, parse_mode="html",
             #                           buttons=button)
         else:
@@ -372,10 +350,7 @@ async def show(event):
             with tempfile.TemporaryDirectory() as tmpdirname:
                 text = create_message_select_query(res)
                 converter(text, tmpdirname)
-                await client.send_file(
-                    SENDER,
-                    f'{tmpdirname}/out.jpg',
-                    buttons=button)
+                await client.send_file(SENDER, f"{tmpdirname}/out.jpg", buttons=button)
             # await client.send_message(SENDER, text, parse_mode="html",
             #                           buttons=button)
 
@@ -413,12 +388,13 @@ async def display_categories(event):
         # Otherwhise, print a default text
         else:
             text = (
-                "You have made no predictions so far. Give it a try! "
-                "It is for free."
+                "You have made no predictions so far. Give it a try! " "It is for free."
             )
             await client.send_message(SENDER, text, parse_mode="html")
-            logger.debug("Someone tried to have a look at their categories"
-                         " without any made predictions.")
+            logger.debug(
+                "Someone tried to have a look at their categories"
+                " without any made predictions."
+            )
 
     except Exception as e:
         logger.error(
@@ -444,9 +420,7 @@ async def update(event):
         SENDER = sender.id
 
         # Start a conversation
-        async with client.conversation(
-            await event.get_chat(), exclusive=True
-        ) as conv:
+        async with client.conversation(await event.get_chat(), exclusive=True) as conv:
             text = (
                 "If it is time to shift your beliefs in accordance with "
                 "a new evidence or you've just changed your mind here what "
@@ -532,9 +506,7 @@ async def enter(event):
         sender = await event.get_sender()
         SENDER = sender.id
 
-        async with client.conversation(
-            await event.get_chat(), exclusive=True
-        ) as conv:
+        async with client.conversation(await event.get_chat(), exclusive=True) as conv:
             text = (
                 "Has reality surprised you this time, eh?"
                 " Anyway just enter the id of your prediction; and"
@@ -576,8 +548,9 @@ async def enter(event):
                 if crsr.rowcount < 1:
                     text = f"Prediction with id {pred_id} is not present"
                     await client.send_message(SENDER, text, parse_mode="html")
-                    logger.info("Enter outcome function was aborted"
-                                f" with the text: {text}")
+                    logger.info(
+                        "Enter outcome function was aborted" f" with the text: {text}"
+                    )
                 else:
                     text = (
                         "An actual outcome of an event with "
@@ -590,8 +563,7 @@ async def enter(event):
 
     except Exception as e:
         logger.error(
-            "Something went wrong when entering an outcome"
-            f" with an error: {e}"
+            "Something went wrong when entering an outcome" f" with an error: {e}"
         )
         return
 
@@ -611,9 +583,7 @@ async def check(event):
         sender = await event.get_sender()
         SENDER = sender.id
 
-        async with client.conversation(
-            await event.get_chat(), exclusive=True
-        ) as conv:
+        async with client.conversation(await event.get_chat(), exclusive=True) as conv:
             text = (
                 "Type all and then enter if you'd like to get your current"
                 " overall calibration. In case you're after some specific"
@@ -634,7 +604,6 @@ async def check(event):
                 )
                 logger.info("Categories request isn't valid")
             else:
-
                 # Execute the query and get all (*) predictions
                 if ans.lower() == "all":
                     query = """SELECT tot_acc_50 / tot_num_pred AS calibration_50,
@@ -662,11 +631,14 @@ async def check(event):
                     if not res:
                         await client.send_message(
                             SENDER,
-                            ("There's currently nothing your calibration"
-                             " might possibly be calculated on. Make at least"
-                             " one prediction and then enter an actual outcome"
-                             " for it."),
-                            parse_mode="html")
+                            (
+                                "There's currently nothing your calibration"
+                                " might possibly be calculated on. Make at least"
+                                " one prediction and then enter an actual outcome"
+                                " for it."
+                            ),
+                            parse_mode="html",
+                        )
                         return
 
                     text = (
@@ -705,11 +677,14 @@ async def check(event):
                     if not res:
                         await client.send_message(
                             SENDER,
-                            ("There's currently nothing your calibration"
-                             " might possibly be calculated on. Make at least"
-                             " one prediction and then enter an actual outcome"
-                             " for it."),
-                            parse_mode="html")
+                            (
+                                "There's currently nothing your calibration"
+                                " might possibly be calculated on. Make at least"
+                                " one prediction and then enter an actual outcome"
+                                " for it."
+                            ),
+                            parse_mode="html",
+                        )
                         return
 
                     text = (
@@ -725,8 +700,7 @@ async def check(event):
 
     except Exception as e:
         logger.error(
-            "Something went wrong in calibration's calculation"
-            f" with an error: {e}"
+            "Something went wrong in calibration's calculation" f" with an error: {e}"
         )
         return
 
@@ -743,9 +717,7 @@ async def delete(event):
         sender = await event.get_sender()
         SENDER = sender.id
 
-        async with client.conversation(
-            await event.get_chat(), exclusive=True
-        ) as conv:
+        async with client.conversation(await event.get_chat(), exclusive=True) as conv:
             text = "Enter an id for a prediction you are going to delete"
             await conv.send_message(text)
             response = await conv.get_response(timeout=600)
@@ -760,7 +732,6 @@ async def delete(event):
                 )
                 logger.info("Deletion request isn't valid")
             else:
-
                 # Create the DELETE query passing the id as a parameter
                 sql_command = """DELETE FROM predictions.raw_predictions
                 WHERE id = (%s);"""
@@ -795,8 +766,7 @@ async def delete(event):
 if __name__ == "__main__":
     try:
         logging.basicConfig(
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            filemode="w"
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", filemode="w"
         )
         logger: logging.Logger = logging.getLogger(__name__)
         logger.setLevel(logging.DEBUG)
@@ -813,9 +783,7 @@ if __name__ == "__main__":
         handler.setFormatter(formatter)
 
         if not check_tokens():
-            logger.critical("Bot stopped due missing some token",
-                            exc_info=1
-                            )
+            logger.critical("Bot stopped due missing some token", exc_info=1)
             sys.exit(2)
 
         # Connect to the database
@@ -850,5 +818,5 @@ if __name__ == "__main__":
         client.run_until_disconnected()
 
     except Exception as error:
-        client.send_message('me', "Bot isn't working!!")
+        client.send_message("me", "Bot isn't working!!")
         logger.fatal("Bot isn't working due to a %s", error, exc_info=1)
