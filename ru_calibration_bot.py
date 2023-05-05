@@ -42,7 +42,7 @@ HOST: str = str(os.getenv("HOST"))
 PORT: str = str(os.getenv("PORT"))
 DATABASE: str = str(os.getenv("DATABASE"))
 
-SESSION_NAME: str = "sessions/Bot"
+SESSION_NAME: str = "sessions/conBot"
 CHUNK_SIZE: int = 10
 COUNTER: int = None
 TEXT: dict = {}
@@ -189,7 +189,7 @@ async def display_categories(event):
             await client.send_message(SENDER, text, parse_mode="html")
         # Otherwhise, print a default text
         else:
-            err_message(client, parse_mode="html", del_state=False)
+            await err_message(client, parse_mode="html", del_state=False)
             logger.debug(
                 "Someone tried to have a look at their categories"
                 " without any made predictions."
@@ -287,12 +287,12 @@ async def CUEDhandler(event):
         res = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
         if not res:
-            err_message(client, who, parse_mode="html", state_dict=conversation_state)
+            await err_message(client, who, parse_mode="html", state_dict=conversation_state)
             return
         else:
             cat_list = [a for a in chain.from_iterable(res)] + ["общая", "Общая"]
             if mes.lower() not in cat_list:
-                err_message(
+                await err_message(
                     client,
                     who,
                     state_dict=conversation_state,
@@ -390,14 +390,14 @@ async def CUEDhandler(event):
         user_predictions = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
         if not user_predictions:
-            err_message(client, who, state_dict=conversation_state)
+            await err_message(client, who, state_dict=conversation_state)
             logger.info(
                 "Someone tried to update a prediction without"
                 "making at least one themselve"
             )
             return
         if not validate_updating(mes):
-            err_message(
+            await err_message(
                 client,
                 who,
                 parse_mode="html",
@@ -421,7 +421,7 @@ async def CUEDhandler(event):
             low_90 = message[3]
             hi_90 = message[4]
             if index not in mes_list:
-                err_message(
+                await err_message(
                     client,
                     who,
                     mess=(
@@ -456,7 +456,7 @@ async def CUEDhandler(event):
         user_predictions = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
         if not user_predictions:
-            err_message(client, who, state_dict=conversation_state)
+            await err_message(client, who, state_dict=conversation_state)
             logger.info(
                 "Someone tried to enter an outcome of a prediction"
                 " without making at least one themselve"
@@ -464,7 +464,7 @@ async def CUEDhandler(event):
             return
 
         if not validate_outcome(mes):
-            err_message(
+            await err_message(
                 client,
                 who,
                 mess=(
@@ -487,7 +487,7 @@ async def CUEDhandler(event):
             actual_outcome = list_of_words[1]
 
             if pred_id not in mes_list:
-                err_message(
+                await err_message(
                     client,
                     who,
                     mess=(
@@ -531,7 +531,7 @@ async def CUEDhandler(event):
         user_predictions = crsr.fetchall()  # fetch all the results
         # If there is no categories yet, print a warning
         if not user_predictions:
-            err_message(client, who)
+            await err_message(client, who)
             await client.send_message(who, text, parse_mode="html")
             logger.info(
                 "Someone tried to delete a prediction"
@@ -540,7 +540,7 @@ async def CUEDhandler(event):
             return
 
         if not validate_deletion(mes):
-            err_message(
+            await err_message(
                 client,
                 who,
                 mess=(
@@ -558,7 +558,7 @@ async def CUEDhandler(event):
             mes_list = [str(x) for x in chain.from_iterable(user_predictions)]
             pred_id = mes_list[0]
             if pred_id not in mes_list:
-                err_message(
+                await err_message(
                     client,
                     who,
                     mess=(
@@ -617,7 +617,7 @@ async def CUEDhandler(event):
             )
             return
         else:
-            err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
+            await err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
             return
     elif conversation_state.get(who) == State.WAIT_ADD_CATEGORY:
         if check_click(mes):
@@ -635,7 +635,7 @@ async def CUEDhandler(event):
             )
             return
         else:
-            err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
+            await err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
             return
     elif conversation_state.get(who) == State.WAIT_ADD_UNIT:
         if check_click(mes):
@@ -651,7 +651,7 @@ async def CUEDhandler(event):
             )
             return
         else:
-            err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
+            await err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
             return
     elif conversation_state.get(who) == State.WAIT_ADD_LOW_50:
         if check_click(mes):
@@ -667,7 +667,7 @@ async def CUEDhandler(event):
             )
             return
         else:
-            err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
+            await err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
             return
     elif conversation_state.get(who) == State.WAIT_ADD_HI_50:
         if check_click(mes):
@@ -683,7 +683,7 @@ async def CUEDhandler(event):
             )
             return
         else:
-            err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
+            await err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
             return
     elif conversation_state.get(who) == State.WAIT_ADD_LOW_90:
         if check_click(mes):
@@ -699,7 +699,7 @@ async def CUEDhandler(event):
             )
             return
         else:
-            err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
+            await err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
             return
     elif conversation_state.get(who) == State.WAIT_ADD_HI_90:
         if check_click(mes):
@@ -721,7 +721,7 @@ async def CUEDhandler(event):
             )
             return
         else:
-            err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
+            await err_message(client, who, mess=DEFAULT_ERROR_MESSAGE)
             return
 
 
@@ -865,7 +865,7 @@ async def display_whole(event):
 
         # Otherwhise, print a default text
         else:
-            err_message(client, SENDER, del_state=False)
+            await err_message(client, SENDER, del_state=False)
 
     except Exception as e:
         logger.error(
@@ -963,7 +963,7 @@ async def display_empty(event):
 
         # Otherwhise, print a default text
         else:
-            err_message(client, SENDER, del_state=False)
+            await err_message(client, SENDER, del_state=False)
 
     except Exception as e:
         logger.error(
@@ -1073,5 +1073,4 @@ if __name__ == "__main__":
         client.run_until_disconnected()
 
     except Exception as error:
-        client.send_message("me", "Bot isn't working!!")
         logger.fatal("Bot isn't working due to a %s", error, exc_info=1)
