@@ -13,7 +13,7 @@ mccabe==0.6.1
 mysql-connector-python==8.0.31
 packaging==22.0
 pluggy==1.0.0
-protobuf==3.20.1
+protobuf==3.20.2
 py==1.11.0
 pyaes==1.6.1
 pyasn1==0.4.8
