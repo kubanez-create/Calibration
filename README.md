@@ -1,6 +1,5 @@
 # Calibration bot
 
-People, among other things are famous for their inability to distinguish between things they control, know, can possibly predict and understand and things they don't.
+Many people have trouble telling the difference between what they can control, know, predict and understand, and what they can't. We often base our expectations on our past experiences, without checking how accurate they were or how much they match the current situation. For example, we might ignore the dark clouds in the sky and trust our intuition that says it won't rain, even if the weather report said otherwise.
 
-So this bot was developed in hope it will help to better understand one's limits at least when we talk about such cognitive tasks as predicting the future.
-We often make implicit assumptions about our future without properly understanding just how good our past predictions were and so to what extend we can rely on the current intution telling us for an instance that those inky clouds doesn't actually matter so much when the forecast was "clear sky and not a slightest chance of rain tomorrow".
+This bot was created to help people realize their limits in these cognitive tasks, especially when it comes to forecasting the future.  
