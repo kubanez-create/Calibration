@@ -16,7 +16,7 @@ pluggy==1.0.0
 protobuf==5.29.6
 py==1.11.0
 pyaes==1.6.1
-pyasn1==0.6.3
+pyasn1==0.6.4
 pycodestyle==2.7.0
 pydocstyle==6.2.2
 pyflakes==2.3.1
